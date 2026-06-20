@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cata a Ciegas · Suche & JP</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script type="importmap">{"imports":{"@google/generative-ai":"https://esm.run/@google/generative-ai"}}</script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{min-height:100vh;background:linear-gradient(160deg,#1a0a0f 0%,#2d0e1a 60%,#1a0a0f 100%);font-family:Georgia,serif;color:#f0e6d3;padding-bottom:80px;}
+    .header{text-align:center;padding:36px 20px 20px;border-bottom:1px solid rgba(180,120,80,0.25);}
+    .logo{font-size:11px;letter-spacing:5px;color:#b47850;text-transform:uppercase;margin-bottom:10px;}
+    h1{font-size:clamp(22px,5vw,36px);font-weight:400;color:#f0e6d3;letter-spacing:1px;margin-bottom:6px;}
+    .subtitle{font-size:13px;color:#9a7a60;letter-spacing:2px;font-style:italic;}
+    .container{max-width:480px;margin:0 auto;padding:0 18px;}
+    .card{background:rgba(255,255,255,0.04);border:1px solid rgba(180,120,80,0.2);border-radius:16px;padding:28px 24px;margin-top:24px;}
+    .section-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#b47850;margin-bottom:14px;margin-top:24px;border-top:1px solid rgba(180,120,80,0.15);padding-top:20px;}
+    .field-label{display:block;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#b47850;margin-bottom:10px;}
+    input[type=text],input[type=number],input[type=password],select{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(180,120,80,0.3);border-radius:8px;color:#f0e6d3;font-size:16px;padding:12px 14px;outline:none;font-family:Georgia,serif;}
+    select option{background:#2d0e1a;color:#f0e6d3;}
+    .btn-primary{width:100%;background:linear-gradient(135deg,#7B1E3A,#b47850);border:none;border-radius:10px;color:#fff;font-size:14px;letter-spacing:2px;padding:14px;cursor:pointer;text-transform:uppercase;margin-top:12px;font-family:Georgia,serif;}
+    .btn-secondary{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(180,120,80,0.3);border-radius:10px;color:#9a7a60;font-size:13px;letter-spacing:2px;padding:14px;cursor:pointer;text-transform:uppercase;margin-top:10px;font-family:Georgia,serif;}
+    .btn-danger{width:100%;background:rgba(255,50,50,0.08);border:1px solid rgba(255,80,80,0.3);border-radius:10px;color:#e07070;font-size:13px;letter-spacing:2px;padding:14px;cursor:pointer;text-transform:uppercase;margin-top:10px;font-family:Georgia,serif;}
+    .btn-gold{width:100%;background:linear-gradient(135deg,#8B6914,#c9a84c);border:none;border-radius:10px;color:#fff;font-size:14px;letter-spacing:2px;padding:14px;cursor:pointer;text-transform:uppercase;margin-top:10px;font-family:Georgia,serif;}
+    .chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+    .chip{padding:8px 14px;border-radius:20px;border:1px solid rgba(180,120,80,0.25);background:rgba(255,255,255,0.03);color:#9a7a60;font-size:13px;cursor:pointer;font-family:Georgia,serif;transition:all 0.15s;}
+    .chip.selected{border-color:#b47850;background:rgba(180,120,80,0.2);color:#f0e6d3;}
+    .dog-chip{padding:10px 18px;border-radius:20px;border:1px solid rgba(240,165,0,0.3);background:rgba(255,255,255,0.03);color:#9a7a60;font-size:14px;cursor:pointer;font-family:Georgia,serif;transition:all 0.15s;}
+    .dog-chip.selected{border:2px solid #f0a500;background:rgba(240,165,0,0.2);color:#f0a500;font-weight:bold;}
+    .small-input{width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(180,120,80,0.3);border-radius:8px;color:#f0e6d3;font-size:15px;padding:10px 14px;outline:none;font-family:Georgia,serif;}
+    .save-btn{width:100%;background:linear-gradient(135deg,#7B1E3A,#b47850);border:none;border-radius:10px;color:#fff;font-size:14px;letter-spacing:2px;padding:16px;cursor:pointer;text-transform:uppercase;margin-top:28px;font-family:Georgia,serif;}
+    .progress-bar-container{height:3px;background:rgba(180,120,80,0.15);border-radius:2px;max-width:200px;margin:12px auto 0;}
+    .progress-bar{height:100%;border-radius:2px;transition:width 0.4s;}
+    .ranking-card{background:rgba(180,120,80,0.08);border:1px solid rgba(180,120,80,0.25);border-radius:16px;padding:20px;margin-top:16px;}
+    .ranking-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(180,120,80,0.1);}
+    .ranking-row:last-child{border-bottom:none;}
+    .detail-card{background:rgba(255,255,255,0.04);border:1px solid rgba(180,120,80,0.2);border-radius:14px;padding:20px;margin-top:14px;}
+    .participant-row{padding:10px 0;border-bottom:1px solid rgba(180,120,80,0.08);}
+    .participant-row:last-child{border-bottom:none;}
+    .flex-row{display:flex;justify-content:space-between;align-items:center;}
+    .small-text{font-size:12px;color:#9a7a60;margin-top:4px;}
+    .screen{display:none;}.screen.active{display:block;}
+    .info-box{margin-top:14px;padding:12px;background:rgba(180,120,80,0.08);border-radius:8px;font-size:13px;color:#9a7a60;text-align:center;}
+    .rule-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(180,120,80,0.08);}
+    .wine-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;display:inline-block;}
+    .error-msg{color:#e07070;font-size:13px;text-align:center;margin-top:10px;display:none;}
+    input[type=range]{width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background:rgba(180,120,80,0.2);}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#b47850;cursor:pointer;border:2px solid #f0e6d3;}
+    .slider-row{margin-top:16px;}
+    .slider-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+    .slider-pct{font-size:20px;font-weight:bold;color:#b47850;}
+    .code-display{text-align:center;padding:20px;background:rgba(180,120,80,0.08);border-radius:12px;border:1px solid rgba(180,120,80,0.3);margin-top:16px;}
+    .code{font-size:36px;font-weight:bold;letter-spacing:8px;color:#b47850;font-family:monospace;}
+    .progress-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;}
+    .progress-table th{color:#b47850;text-align:left;padding:8px;border-bottom:1px solid rgba(180,120,80,0.2);font-size:11px;letter-spacing:2px;text-transform:uppercase;}
+    .progress-table td{padding:8px;border-bottom:1px solid rgba(180,120,80,0.08);color:#f0e6d3;}
+    .winner-banner{text-align:center;padding:28px 20px;background:linear-gradient(135deg,rgba(180,150,20,0.15),rgba(180,120,80,0.15));border:1px solid rgba(200,170,50,0.4);border-radius:16px;margin-top:20px;}
+    .loser-banner{text-align:center;padding:20px;background:rgba(100,50,50,0.15);border:1px solid rgba(150,80,80,0.3);border-radius:16px;margin-top:12px;}
+    .stat-card{background:rgba(255,255,255,0.04);border:1px solid rgba(180,120,80,0.2);border-radius:14px;padding:16px;margin-top:12px;}
+    .stat-title{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#b47850;margin-bottom:8px;}
+    .stat-value{font-size:18px;color:#f0e6d3;font-weight:bold;}
+    .stat-sub{font-size:12px;color:#9a7a60;margin-top:4px;}
+    .tab-row{display:flex;gap:8px;margin-top:20px;}
+    .tab-btn{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(180,120,80,0.3);background:rgba(255,255,255,0.03);color:#9a7a60;font-size:12px;cursor:pointer;font-family:Georgia,serif;text-align:center;letter-spacing:1px;}
+    .tab-btn.active{background:rgba(180,120,80,0.2);border-color:#b47850;color:#f0e6d3;}
+    .tab-content{display:none;}.tab-content.active{display:block;}
+    .chart-bar-container{margin-top:8px;}
+    .chart-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .chart-bar-label{width:80px;font-size:12px;color:#9a7a60;flex-shrink:0;}
+    .chart-bar-wrap{flex:1;background:rgba(255,255,255,0.05);border-radius:4px;height:18px;overflow:hidden;}
+    .chart-bar-fill{height:100%;border-radius:4px;transition:width 0.6s;}
+    .chart-bar-val{width:40px;font-size:12px;color:#b47850;text-align:right;flex-shrink:0;}
+    @media print{body{background:#fff;color:#000;}.btn-primary,.btn-secondary,.btn-danger,.btn-gold,.save-btn,.tab-row{display:none!important;}.screen{display:block!important;}}
+  </style>
+</head>
+<body>
+
+<!-- INICIO -->
+<div id="screen-inicio" class="screen active">
+  <div class="header">
+    <div class="logo">Cata a Ciegas · Suche & JP</div>
+    <h1>La Mesa del Vino</h1>
+    <div class="subtitle">In vino veritas</div>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div style="text-align:center;font-size:40px;margin-bottom:16px">🍷</div>
+      <div style="text-align:center;font-size:14px;color:#9a7a60;margin-bottom:24px">¿Con qué rol entrás?</div>
+      <button class="btn-primary" onclick="goTo('screen-admin-login')">Soy el administrador</button>
+      <button class="btn-secondary" onclick="goTo('screen-participant-login')">Soy participante</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div id="screen-admin-login" class="screen">
+  <div class="header"><div class="logo">Cata a Ciegas · Suche & JP</div><h1>Administrador</h1></div>
+  <div class="container">
+    <div class="card">
+      <label class="field-label">Contraseña</label>
+      <input type="password" id="admin-password" placeholder="••••••••"/>
+      <div class="error-msg" id="admin-pass-error">Contraseña incorrecta</div>
+      <button class="btn-primary" onclick="adminLogin()">Ingresar</button>
+      <button class="btn-secondary" onclick="goTo('screen-inicio')">← Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN SETUP -->
+<div id="screen-admin-setup" class="screen">
+  <div class="header"><div class="logo">Cata a Ciegas · Suche & JP</div><h1>Nueva Cata</h1></div>
+  <div class="container">
+    <div class="card">
+      <label class="field-label">¿Cuántos participantes son?</label>
+      <input type="number" id="admin-num-p" min="1" max="20" placeholder="Ej: 6" oninput="updateVinosInfo()"/>
+      <div id="admin-vinos-info" class="info-box" style="display:none"></div>
+      <button class="btn-primary" onclick="adminSetup()">Iniciar cata</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN ESPERA -->
+<div id="screen-admin-espera" class="screen">
+  <div class="header"><div class="logo">Cata a Ciegas · Suche & JP</div><h1>Cata en curso</h1><div class="subtitle" id="admin-espera-subtitle"></div></div>
+  <div class="container">
+    <div class="code-display">
+      <div class="code-label field-label">Código de sesión</div>
+      <div class="code" id="session-code-display"></div>
+      <div style="font-size:12px;color:#9a7a60;margin-top:8px">Compartí este código con los participantes</div>
+    </div>
+    <div class="card">
+      <div class="field-label">Progreso de catadores</div>
+      <div id="progress-table-container"><div style="color:#9a7a60;font-size:13px">Actualizando...</div></div>
+      <button class="btn-secondary" onclick="refreshProgress()" style="margin-top:12px">↺ Actualizar progreso</button>
+    </div>
+    <div class="card" style="text-align:center">
+      <button class="btn-primary" onclick="goToReveal()">Cargar datos reales</button>
+      <button class="btn-secondary" onclick="loadAndShowResults()">Ver resultados</button>
+      <button class="btn-secondary" onclick="agregarVino()" style="border-color:rgba(180,120,80,0.5);color:#b47850">➕ Agregar un vino más</button>
+      <div id="confirm-reset" style="display:none;margin-top:12px;padding:16px;background:rgba(255,50,50,0.08);border-radius:10px;border:1px solid rgba(255,80,80,0.2)">
+        <div style="font-size:13px;color:#e07070;text-align:center;margin-bottom:12px">¿Seguro? Esto borra todos los datos.</div>
+        <button class="btn-danger" onclick="resetCata()" style="margin-top:0">Sí, empezar de nuevo</button>
+        <button class="btn-secondary" onclick="document.getElementById('confirm-reset').style.display='none'">Cancelar</button>
+      </div>
+      <button class="btn-danger" onclick="document.getElementById('confirm-reset').style.display='block'">🔄 Nueva cata</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARTICIPANT LOGIN -->
+<div id="screen-participant-login" class="screen">
+  <div class="header"><div class="logo">Cata a Ciegas · Suche & JP</div><h1>La Mesa del Vino</h1><div class="subtitle">In vino veritas</div></div>
+  <div class="container">
+    <div class="card">
+      <label class="field-label">Código de sesión</label>
+      <input type="text" id="session-code-input" placeholder="Ej: 4823" style="text-align:center;font-size:24px;letter-spacing:6px;font-family:monospace" maxlength="4"/>
+      <div class="error-msg" id="session-code-error">Código incorrecto. Pedíselo al administrador.</div>
+      <label class="field-label" style="margin-top:16px">Tu nombre</label>
+      <input type="text" id="participant-nombre" placeholder="Ej: Martín"/>
+      <button class="btn-primary" onclick="participantLogin()">Ingresar</button>
+      <button class="btn-secondary" onclick="goTo('screen-inicio')">← Volver</button>
+    </div>
+  </div>
+</div>
+
+<!-- REGLAMENTO -->
+<div id="screen-reglamento" class="screen">
+  <div class="header"><div class="logo">Cata a Ciegas · Suche & JP</div><h1>Bienvenidos 🍷</h1></div>
+  <div class="container">
+    <div class="card">
+      <div style="text-align:center;font-size:15px;line-height:1.8;color:#f0e6d3;margin-bottom:8px">Bienvenidos a la cata a ciegas</div>
+      <div style="text-align:center;font-size:14px;color:#9a7a60;font-style:italic;margin-bottom:24px">Donde el vino habla y el paladar decide.</div>
+      <div style="border-top:1px solid rgba(180,120,80,0.2);padding-top:20px">
+        <div class="field-label">Valorización del vino</div>
+        <div class="rule-row"><span>🎨 Color</span><span style="color:#b47850;font-weight:bold">hasta 10 pts</span></div>
+        <div class="rule-row"><span>👃 Aroma</span><span style="color:#b47850;font-weight:bold">hasta 20 pts</span></div>
+        <div class="rule-row"><span>👅 Sabor</span><span style="color:#b47850;font-weight:bold">hasta 35 pts</span></div>
+        <div class="rule-row"><span>✨ Impresión general</span><span style="color:#b47850;font-weight:bold">hasta 35 pts</span></div>
+        <div class="rule-row" style="background:rgba(180,120,80,0.06);padding:8px;border-radius:8px;margin-top:4px"><span><strong>📊 Total</strong></span><span style="color:#b47850;font-weight:bold">hasta 100 pts</span></div>
+        <div class="field-label" style="margin-top:20px">Puntos por aciertos</div>
+        <div class="rule-row"><span>🍇 Cepa acertada</span><span style="color:#b47850;font-weight:bold">3 puntos</span></div>
+        <div class="rule-row"><span>📅 Año exacto</span><span style="color:#b47850;font-weight:bold">2 puntos</span></div>
+        <div class="rule-row"><span>📅 Año ±2 años</span><span style="color:#b47850;font-weight:bold">1 punto</span></div>
+        <div class="rule-row"><span>🪵 Madera (sí o no)</span><span style="color:#b47850;font-weight:bold">2 puntos</span></div>
+        <div class="rule-row"><span>🪵 Madera (meses exactos)</span><span style="color:#b47850;font-weight:bold">+1 punto adicional</span></div>
+        <div class="rule-row"><span>📍 Región acertada</span><span style="color:#b47850;font-weight:bold">1 punto</span></div>
+        <div class="rule-row"><span>💰 Precio dentro del ±20%</span><span style="color:#b47850;font-weight:bold">1 punto</span></div>
+        <div class="rule-row" style="border:none"><span>🐶 ¿Este es el perro?</span><span style="color:#b47850;font-weight:bold">Duplica tus puntos de ese vino</span></div>
+      </div>
+      <div style="margin-top:20px;padding:14px;background:rgba(240,165,0,0.06);border:1px solid rgba(240,165,0,0.2);border-radius:12px">
+        <div style="font-size:12px;font-weight:bold;color:#f0a500;margin-bottom:6px">🐶 ¿Qué es el perro?</div>
+        <div style="font-size:13px;color:#9a7a60;line-height:1.7">El "perro" es el vino misterioso que trajo el administrador. Si adivinás que ese vino es el perro, tus puntos de aciertos de ese vino se <strong style="color:#f0a500">duplican</strong>. ¡Gran riesgo, gran recompensa! Ojo: solo podés apostar una vez.</div>
+      </div>
+      <div style="margin-top:20px;font-size:13px;color:#9a7a60;text-align:center;line-height:1.6">Al final el administrador revela los datos reales y descubrimos quién tiene el mejor paladar. <span style="color:#b47850">¡Que gane el mejor! 🏆</span></div>
+      <button class="btn-primary" onclick="startCata()">¡Arrancar la cata!</button>
+    </div>
+  </div>
+</div>
+
+<!-- FORM VINO -->
+<div id="screen-form" class="screen">
+  <div class="header">
+    <div class="logo" id="form-logo">Cata a Ciegas · Suche & JP</div>
+    <h1 id="form-title">Vino 1</h1>
+    <div class="progress-bar-container"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#b47850;margin-bottom:14px">Valorización</div>
+
+      <div class="slider-row">
+        <div class="slider-label"><span style="font-size:13px;color:#f0e6d3">🎨 Color</span><span class="slider-pct" id="color-pct">0%</span></div>
+        <input type="range" id="slider-color" min="0" max="100" value="0" oninput="updateSlider('color')"/>
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span style="font-size:13px;color:#f0e6d3">👃 Aroma</span><span class="slider-pct" id="aroma-pct">0%</span></div>
+        <input type="range" id="slider-aroma" min="0" max="100" value="0" oninput="updateSlider('aroma')"/>
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span style="font-size:13px;color:#f0e6d3">👅 Sabor</span><span class="slider-pct" id="sabor-pct">0%</span></div>
+        <input type="range" id="slider-sabor" min="0" max="100" value="0" oninput="updateSlider('sabor')"/>
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span style="font-size:13px;color:#f0e6d3">✨ Impresión general</span><span class="slider-pct" id="impresion-pct">0%</span></div>
+        <input type="range" id="slider-impresion" min="0" max="100" value="0" oninput="updateSlider('impresion')"/>
+      </div>
+
+      <div class="section-title">Paso por madera</div>
+      <div class="chip-row">
+        <button class="chip" id="madera-si" onclick="selectMadera('Sí')">Sí</button>
+        <button class="chip" id="madera-no" onclick="selectMadera('No')">No</button>
+      </div>
+      <div id="madera-meses-section" style="display:none;margin-top:12px">
+        <div class="field-label" style="margin-bottom:8px">Tiempo en madera</div>
+        <div class="chip-row">
+          <button class="chip" id="m6" onclick="selectMaderaMeses('6 meses')">6 meses</button>
+          <button class="chip" id="m12" onclick="selectMaderaMeses('12 meses')">12 meses</button>
+          <button class="chip" id="m18" onclick="selectMaderaMeses('18 meses')">18 meses</button>
+        </div>
+      </div>
+
+      <div class="section-title">Año</div>
+      <div class="slider-row">
+        <div class="slider-label"><span style="font-size:13px;color:#f0e6d3">📅 Año estimado</span><span class="slider-pct" id="anio-display" style="font-size:18px">—</span></div>
+        <input type="range" id="slider-anio" min="2000" max="2025" value="2012" oninput="updateAnioSlider()"/>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#9a7a60;margin-top:4px"><span>2000</span><span>2025</span></div>
+      </div>
+
+      <div class="section-title">Región</div>
+      <div class="chip-row" id="region-row"></div>
+
+      <div class="section-title">Precio estimativo</div>
+      <input type="number" inputmode="numeric" pattern="[0-9]*" class="small-input" id="input-precio" placeholder="Ej: 8500" min="0" step="1" onkeypress="return event.charCode>=48&&event.charCode<=57"/>
+
+      <div class="section-title">Cepa estimada</div>
+      <div class="chip-row" id="cepas-row"></div>
+
+      <div class="section-title" id="perro-section-title">¿Este es el perro? 🐶</div>
+      <div class="chip-row" id="perro-row">
+        <button class="dog-chip" id="perro-si" onclick="selectPerro(true)">🐶 Sí, este es el perro</button>
+        <button class="chip" id="perro-no" onclick="selectPerro(false)">No</button>
+      </div>
+
+      <button class="save-btn" id="save-btn" onclick="fijarValores()">Fijar valores ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ESPERA PARTICIPANTE -->
+<div id="screen-espera" class="screen">
+  <div class="header"><div class="logo" id="espera-logo">Cata a Ciegas · Suche & JP</div><h1>¡Listo! 🎉</h1></div>
+  <div class="container">
+    <div class="card" style="text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">🍷</div>
+      <div style="font-size:15px;color:#9a7a60;line-height:1.7">Terminaste de catar todos los vinos.<br><br>Esperá a que el administrador cargue los datos reales. La pantalla va a cambiar automáticamente.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN REVEAL -->
+<div id="screen-admin-reveal" class="screen">
+  <div class="header"><div class="logo">Cata a Ciegas · Suche & JP</div><h1>Datos Reales</h1><div class="subtitle">Cargá la info de cada vino</div></div>
+  <div class="container" id="reveal-container"></div>
+  <div class="container">
+    <button class="btn-primary" onclick="saveReveal()" style="margin-top:20px">Revelar resultados 🏆</button>
+    <button class="btn-secondary" onclick="goTo('screen-admin-espera')">← Volver</button>
+  </div>
+</div>
+
+<!-- RESULTADOS -->
+<div id="screen-resultados" class="screen">
+  <div class="header"><div class="logo">Cata a Ciegas · Suche & JP</div><h1>Resultados Finales</h1></div>
+  <div class="container">
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchTab('tab-resultados',this)">🏆 Resultados</button>
+      <button class="tab-btn" onclick="switchTab('tab-estadisticas',this)">📊 Estadísticas</button>
+      <button class="tab-btn" onclick="switchTab('tab-informe',this)">📋 Mi Informe</button>
+    </div>
+
+    <div id="tab-resultados" class="tab-content active">
+      <button class="btn-primary" onclick="loadAndShowResults()" style="margin-top:16px">↺ Actualizar</button>
+      <button class="btn-gold" onclick="printResults()">📄 Descargar PDF</button>
+      <div id="resultados-content"></div>
+      <button class="btn-secondary" id="btn-editar-reveal" style="display:none;margin-top:16px" onclick="goToReveal()">✏️ Editar datos reales</button>
+    </div>
+
+    <div id="tab-estadisticas" class="tab-content">
+      <button class="btn-gold" onclick="printStats()" style="margin-top:16px">📄 Descargar PDF estadísticas</button>
+      <div id="estadisticas-content"></div>
+    </div>
+
+    <div id="tab-informe" class="tab-content">
+      <div id="informe-apikey-box" class="card" style="margin-top:16px">
+        <div style="font-size:13px;color:#9a7a60;margin-bottom:14px;text-align:center">Generá tu informe personalizado de catador con IA.</div>
+        <button class="btn-primary" onclick="generarInformePersonal()">✨ Generar mi informe con IA</button>
+      </div>
+      <div id="informe-loading" style="display:none;text-align:center;padding:40px 20px">
+        <div style="font-size:40px;margin-bottom:16px">🍷</div>
+        <div style="font-size:14px;color:#b47850;letter-spacing:1px">Analizando tu performance catadora...</div>
+        <div style="font-size:12px;color:#9a7a60;margin-top:8px">Procesando los datos de tu cata</div>
+      </div>
+      <div id="informe-content" style="display:none">
+        <button class="btn-gold" onclick="exportarInformePDF()" style="margin-top:16px">📄 Exportar mi informe PDF</button>
+        <button class="btn-secondary" onclick="volverAInforme()" style="margin-top:8px">↺ Generar otro informe</button>
+        <div id="informe-texto" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyByCyKQq02DDdSu8ftzJ8dIuSx7ILqqjSM",authDomain:"cata-a-ciegas-8b04d.firebaseapp.com",databaseURL:"https://cata-a-ciegas-8b04d-default-rtdb.firebaseio.com",projectId:"cata-a-ciegas-8b04d",storageBucket:"cata-a-ciegas-8b04d.firebasestorage.app",messagingSenderId:"854522973960",appId:"1:854522973960:web:6fb50a6044460df79a66bd"};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+
+const ADMIN_PASSWORD="cata2025";
+const AROMAS=["Frutas rojas","Frutas negras","Especias","Floral","Terroso","Ahumado"];
+const CEPAS=["Malbec","Cabernet Sauvignon","Merlot","Syrah","Pinot Noir","Bonarda","Tempranillo","Cabernet Franc","Petit Verdot","Tannat","Sangiovese","Garnacha","Angelota","Pinot Grigio","Criolla","Otra"];
+const REGIONES=["Mendoza","Salta","San Juan","La Rioja","Neuquén","Río Negro","Córdoba","Otra"];
+const WINE_COLORS=["#7B1E3A","#5C2D5A","#8B2252","#9B3A4A","#6B1F3B","#4A1942","#A0274A","#822040","#6E2B4A","#993355","#7A1535","#5A2060"];
+const SCORE_MAX={color:10,aroma:20,sabor:35,impresion:35};
+
+let state={role:null,nombre:'',config:null,currentWine:0,form:emptyForm(),revealData:[],isAdmin:false,sessionCode:null,perroLocked:false,frozenWines:{}};
+let revealPolling=null;
+let progressInterval=null;
+let cachedAllData={};
+let cachedReveal=[];
+
+// ── Persistencia de sesión ──────────────────────────────────────────────────
+const SESSION_KEY='cata_session';
+
+function saveSession(){
+  if(state.role!=='participant') return;
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    nombre: state.nombre,
+    sessionCode: state.sessionCode,
+    currentWine: state.currentWine,
+    perroLocked: state.perroLocked,
+    frozenWines: state.frozenWines,
+    finished: state.finished||false
+  }));
+}
+
+function clearSession(){
+  localStorage.removeItem(SESSION_KEY);
+}
+
+async function restoreSavedState(saved){
+  // Verificar que la sesión de Firebase siga activa y el código coincida
+  const snap=await db.ref('config').get();
+  if(!snap.exists()||snap.val().sessionCode!==saved.sessionCode){
+    return false;
+  }
+  const cfg=snap.val();
+
+  // Restaurar state
+  state.config=cfg;
+  state.nombre=saved.nombre;
+  state.role='participant';
+  state.sessionCode=saved.sessionCode;
+  state.perroLocked=saved.perroLocked||false;
+  state.frozenWines=saved.frozenWines||{};
+  state.currentWine=saved.currentWine||0;
+  state.finished=saved.finished||false;
+
+  if(saved.finished){
+    // Estaba en pantalla de espera o resultados
+    const revSnap=await db.ref('reveal').get();
+    if(revSnap.exists()){
+      state.revealData=revSnap.val();
+      loadAndShowResults();
+    } else {
+      document.getElementById('espera-logo').textContent='Cata a Ciegas · Suche & JP · '+state.nombre;
+      goTo('screen-espera');
+      startRevealPolling();
+    }
+    return true;
+  }
+
+  // Estaba catando — ver si el vino actual ya lo fijó
+  const wineIdx=state.currentWine;
+  const isFrozen=!!state.frozenWines[wineIdx];
+
+  renderForm();
+  goTo('screen-form');
+
+  if(isFrozen){
+    // Recuperar mi entry de Firebase y mostrar pantalla fija con dispersión
+    const eSnap=await db.ref('entries').get();
+    if(eSnap.exists()){
+      const all=Object.values(eSnap.val());
+      const myEntry=all.find(e=>e.wineIdx===wineIdx&&e.nombre===state.nombre);
+      const otros=all.filter(e=>e.wineIdx===wineIdx&&e.nombre!==state.nombre);
+      if(myEntry){
+        state.form={...myEntry};
+        renderForm();
+        const myScore=calcRealScore(myEntry);
+        renderFormFrozen(wineIdx, myScore, otros.map(calcRealScore), otros);
+      }
+    }
+  }
+  return true;
+}
+
+async function tryRestoreSession(){
+  const raw=localStorage.getItem(SESSION_KEY);
+  if(!raw) return;
+  let saved;
+  try{ saved=JSON.parse(raw); } catch(e){ clearSession(); return; }
+  if(!saved.nombre||!saved.sessionCode) return;
+
+  const codigo=window.prompt(`Tenés una cata en curso a nombre de "${saved.nombre}".\nIngresá tu código de ingreso para continuar donde la dejaste (Cancelar para ir al inicio):`);
+  if(codigo===null||codigo.trim()===''){
+    goTo('screen-inicio');
+    return;
+  }
+  if(codigo.trim()!==saved.sessionCode){
+    alert('Código incorrecto.');
+    goTo('screen-inicio');
+    return;
+  }
+
+  const ok=await restoreSavedState(saved);
+  if(!ok){
+    clearSession();
+    goTo('screen-inicio');
+  }
+}
+// ───────────────────────────────────────────────────────────────────────────
+
+function emptyForm(){return{colorPct:0,aromaPct:0,saborPct:0,impresionPct:0,madera:null,maderaMeses:null,anio:'',region:null,precio:'',cepa:null,esElPerro:null};}
+function emptyReveal(){return{nombre:'',traido:'',cepa:'',anio:'',region:null,precio:'',esElPerro:false,tuveMadera:null,maderaMeses:null};}
+
+function calcRealScore(e){
+  return Math.round((e.colorPct||0)/100*SCORE_MAX.color + (e.aromaPct||0)/100*SCORE_MAX.aroma + (e.saborPct||0)/100*SCORE_MAX.sabor + (e.impresionPct||0)/100*SCORE_MAX.impresion);
+}
+
+function goTo(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='tab-estadisticas') renderEstadisticas();
+}
+
+function buildYearOptions(sel){let h='<option value="">-- Año --</option>';for(let y=2026;y>=2000;y--)h+=`<option value="${y}"${sel==y?' selected':''}}>${y}</option>`;return h;}
+
+function syncFormInputs(){
+  const a=document.getElementById('slider-anio');
+  const p=document.getElementById('input-precio');
+  if(a&&document.getElementById('anio-display').textContent!=='—') state.form.anio=a.value;
+  if(p) state.form.precio=p.value;
+}
+
+function updateAnioSlider(){
+  const val=document.getElementById('slider-anio').value;
+  document.getElementById('anio-display').textContent=val;
+  state.form.anio=val;
+}
+
+// ── Arranque: intentar restaurar sesión guardada ───────────────────────────
+window.addEventListener('load', ()=>{ tryRestoreSession(); });
+// ───────────────────────────────────────────────────────────────────────────
+async function adminLogin(){
+  const pass=document.getElementById('admin-password').value;
+  const err=document.getElementById('admin-pass-error');
+  if(pass!==ADMIN_PASSWORD){err.style.display='block';return;}
+  err.style.display='none';
+  document.getElementById('admin-password').value='';
+  state.isAdmin=true;state.role='admin';
+  const snap=await db.ref('config').get();
+  if(snap.exists()){
+    state.config=snap.val();state.sessionCode=snap.val().sessionCode;
+    document.getElementById('session-code-display').textContent=state.sessionCode;
+    document.getElementById('admin-espera-subtitle').textContent=`${state.config.vinos} vinos · ${state.config.participantes} catadores`;
+    startProgressPolling();
+    goTo('screen-admin-espera');
+  } else {goTo('screen-admin-setup');}
+}
+
+function updateVinosInfo(){
+  const n=parseInt(document.getElementById('admin-num-p').value);
+  const info=document.getElementById('admin-vinos-info');
+  if(n>0){info.style.display='block';info.innerHTML=`Se van a catar <strong style="color:#b47850">${n+1} vinos</strong>`;}
+  else info.style.display='none';
+}
+
+function generateCode(){return String(Math.floor(1000+Math.random()*9000));}
+
+async function adminSetup(){
+  const n=parseInt(document.getElementById('admin-num-p').value);
+  if(!n||n<1)return;
+  const code=generateCode();
+  const cfg={participantes:n,vinos:n+1,sessionCode:code};
+  await db.ref('config').set(cfg);
+  await db.ref('reveal').remove();
+  await db.ref('entries').remove();
+  state.config=cfg;state.sessionCode=code;
+  document.getElementById('session-code-display').textContent=code;
+  document.getElementById('admin-espera-subtitle').textContent=`${cfg.vinos} vinos · ${cfg.participantes} catadores`;
+  startProgressPolling();
+  goTo('screen-admin-espera');
+}
+
+async function agregarVino(){
+  const cfg=state.config;cfg.vinos=cfg.vinos+1;
+  await db.ref('config').set(cfg);state.config=cfg;
+  document.getElementById('admin-espera-subtitle').textContent=`${cfg.vinos} vinos · ${cfg.participantes} catadores`;
+  alert(`✅ Vino ${cfg.vinos} agregado.`);
+}
+
+// Progress table
+function startProgressPolling(){
+  refreshProgress();
+  if(progressInterval) clearInterval(progressInterval);
+  progressInterval=setInterval(refreshProgress,8000);
+}
+
+async function refreshProgress(){
+  const [entriesSnap,configSnap]=await Promise.all([db.ref('entries').get(),db.ref('config').get()]);
+  if(!configSnap.exists())return;
+  const cfg=configSnap.val();
+  const numVinos=cfg.vinos;
+  const winesDone={};
+  if(entriesSnap.exists()){
+    Object.values(entriesSnap.val()).forEach(e=>{
+      if(!winesDone[e.nombre])winesDone[e.nombre]=0;
+      winesDone[e.nombre]=Math.max(winesDone[e.nombre],e.wineIdx+1);
+    });
+  }
+  const names=Object.keys(winesDone);
+  let html=`<table class="progress-table"><tr><th>Participante</th><th>Vinos completados</th><th>Estado</th></tr>`;
+  names.forEach(n=>{
+    const done=winesDone[n];
+    const pct=Math.round(done/numVinos*100);
+    const status=done>=numVinos?'✅ Terminó':`${done}/${numVinos}`;
+    html+=`<tr><td>${n}</td><td><div style="display:flex;align-items:center;gap:8px"><div style="flex:1;background:rgba(255,255,255,0.05);border-radius:4px;height:8px"><div style="width:${pct}%;height:100%;background:#b47850;border-radius:4px"></div></div><span style="font-size:12px;color:#b47850">${status}</span></div></td><td>${done>=numVinos?'🏁':'⏳'}</td></tr>`;
+  });
+  if(names.length===0) html+=`<tr><td colspan="3" style="color:#9a7a60;text-align:center">Ningún participante ha entrado aún</td></tr>`;
+  html+='</table>';
+  document.getElementById('progress-table-container').innerHTML=html;
+}
+
+// Participant login
+async function participantLogin(){
+  const code=document.getElementById('session-code-input').value.trim();
+  const nombre=document.getElementById('participant-nombre').value.trim();
+  const err=document.getElementById('session-code-error');
+  if(nombre.length<2)return;
+  const snap=await db.ref('config').get();
+  if(!snap.exists()||snap.val().sessionCode!==code){err.style.display='block';return;}
+  err.style.display='none';
+  state.config=snap.val();state.nombre=nombre;state.role='participant';
+  state.sessionCode=code;
+
+  // Si hay una sesión guardada de este mismo participante, retomarla donde la dejó
+  const raw=localStorage.getItem(SESSION_KEY);
+  if(raw){
+    try{
+      const saved=JSON.parse(raw);
+      if(saved.nombre===nombre&&saved.sessionCode===code){
+        const ok=await restoreSavedState(saved);
+        if(ok) return;
+      }
+    }catch(e){}
+  }
+
+  saveSession();
+  goTo('screen-reglamento');
+}
+
+function startCata(){
+  state.currentWine=0;state.form=emptyForm();state.perroLocked=false;state.frozenWines={};
+  saveSession();
+  renderForm();goTo('screen-form');
+}
+
+// Sliders
+function updateSlider(type){
+  const pct=parseInt(document.getElementById(`slider-${type}`).value);
+  document.getElementById(`${type}-pct`).textContent=pct+'%';
+  state.form[type+'Pct']=pct;
+}
+
+function renderForm(){
+  const wine=state.currentWine;
+  const total=state.config.vinos;
+  const color=WINE_COLORS[wine%WINE_COLORS.length];
+  document.getElementById('form-logo').textContent='Cata a Ciegas · Suche & JP · '+state.nombre;
+  document.getElementById('form-title').textContent=`Vino ${wine+1} de ${total}`;
+  document.getElementById('progress-bar').style.width=Math.round(wine/total*100)+'%';
+  document.getElementById('progress-bar').style.background=color;
+  document.getElementById('save-btn').textContent='Fijar valores ✓';
+  document.getElementById('save-btn').onclick=()=>fijarValores();
+
+  // Sliders
+  ['color','aroma','sabor','impresion'].forEach(t=>{
+    document.getElementById(`slider-${t}`).value=state.form[t+'Pct']||0;
+    document.getElementById(`${t}-pct`).textContent=(state.form[t+'Pct']||0)+'%';
+  });
+
+  // Year slider
+  const anioSlider=document.getElementById('slider-anio');
+  const anioDisplay=document.getElementById('anio-display');
+  if(state.form.anio){anioSlider.value=state.form.anio;anioDisplay.textContent=state.form.anio;}
+  else{anioDisplay.textContent='—';}
+
+
+  document.getElementById('madera-si').className='chip'+(state.form.madera==='Sí'?' selected':'');
+  document.getElementById('madera-no').className='chip'+(state.form.madera==='No'?' selected':'');
+  document.getElementById('madera-meses-section').style.display=state.form.madera==='Sí'?'block':'none';
+  if(state.form.madera==='Sí'){
+    ['6 meses','12 meses','18 meses'].forEach((m,i)=>{
+      const ids=['m6','m12','m18'];
+      document.getElementById(ids[i]).className='chip'+(state.form.maderaMeses===m?' selected':'');
+    });
+  }
+
+  // Region
+  const regionRow=document.getElementById('region-row');regionRow.innerHTML='';
+  REGIONES.forEach(r=>{
+    const btn=document.createElement('button');
+    btn.className='chip'+(state.form.region===r?' selected':'');
+    btn.textContent=r;
+    btn.onclick=()=>{syncFormInputs();state.form.region=r;renderForm();};
+    regionRow.appendChild(btn);
+  });
+
+  // Cepas
+  const cepasRow=document.getElementById('cepas-row');cepasRow.innerHTML='';
+  CEPAS.forEach(c=>{
+    const btn=document.createElement('button');
+    btn.className='chip'+(state.form.cepa===c?' selected':'');
+    btn.textContent=c;
+    btn.onclick=()=>{syncFormInputs();state.form.cepa=c;renderForm();};
+    cepasRow.appendChild(btn);
+  });
+
+  // Perro
+  const perroTitle=document.getElementById('perro-section-title');
+  const perroRow=document.getElementById('perro-row');
+  const perroSi=document.getElementById('perro-si');
+  const perroNo=document.getElementById('perro-no');
+  if(state.perroLocked){
+    perroTitle.style.display='none';perroRow.style.display='none';
+  } else {
+    perroTitle.style.display='block';perroRow.style.display='flex';
+    perroSi.className='dog-chip'+(state.form.esElPerro===true?' selected':'');
+    perroNo.className='chip'+(state.form.esElPerro===false?' selected':'');
+    perroSi.onclick=()=>selectPerro(true);
+    perroNo.onclick=()=>selectPerro(false);
+  }
+
+  // Precio
+  document.getElementById('input-precio').value=state.form.precio||'';
+}
+
+function selectMadera(val){syncFormInputs();state.form.madera=val;if(val==='No')state.form.maderaMeses=null;renderForm();}
+function selectMaderaMeses(val){syncFormInputs();state.form.maderaMeses=val;renderForm();}
+function selectTanino(val){syncFormInputs();state.form.taninos=val;renderForm();}
+function selectPerro(val){syncFormInputs();state.form.esElPerro=val;renderForm();}
+
+async function fijarValores(){
+  syncFormInputs();
+  if(state.form.esElPerro===true) state.perroLocked=true;
+  const idx=state.currentWine;
+  const key=`${state.nombre.replace(/[^a-zA-Z0-9]/g,'_')}_${idx}`;
+  await db.ref(`entries/${key}`).set({...state.form,nombre:state.nombre,wineIdx:idx,timestamp:Date.now()});
+  state.frozenWines[idx]=true;
+  saveSession();
+  // Load other catadores' scores for this wine to show dispersion
+  const snap=await db.ref('entries').get();
+  const otrosScores=[];
+  const otrosEntries=[];
+  if(snap.exists()){
+    Object.values(snap.val()).forEach(e=>{
+      if(e.wineIdx===idx&&e.nombre!==state.nombre){
+        otrosScores.push(calcRealScore(e));
+        otrosEntries.push(e);
+      }
+    });
+  }
+  const myScore=calcRealScore(state.form);
+  renderFormFrozen(idx,myScore,otrosScores,otrosEntries);
+}
+
+function renderFormFrozen(idx,myScore,otrosScores,otrosEntries){
+  const total=state.config.vinos;
+  const color=WINE_COLORS[idx%WINE_COLORS.length];
+  const isLast=(idx+1>=total);
+  // Freeze all inputs
+  document.querySelectorAll('#screen-form input[type=range]').forEach(el=>el.disabled=true);
+  document.querySelectorAll('#screen-form .chip, #screen-form .dog-chip, #screen-form .save-btn').forEach(el=>{
+    if(el.id!=='save-btn') el.style.pointerEvents='none';
+  });
+
+  // Helper: get readable color name from hex
+  function colorName(hex){
+    const map={'#7B1E3A':'bordo','#5C2D5A':'violeta','#8B2252':'bordo oscuro','#9B3A4A':'rojo','#6B1F3B':'bordo','#4A1942':'púrpura','#A0274A':'carmín','#822040':'bordo','#6E2B4A':'morado','#993355':'rosa oscuro','#7A1535':'granate','#5A2060':'violeta oscuro'};
+    return map[hex]||'tu color';
+  }
+
+  const totalParticipants=state.config.participantes;
+
+  // Helper: waiting message shown until everyone has fijado este vino
+  function buildWaitingHtml(count){
+    return `<div style="margin-top:16px;padding:16px;background:rgba(180,120,80,0.06);border:1px solid rgba(180,120,80,0.2);border-radius:10px;text-align:center">
+      <div style="font-size:13px;color:#9a7a60">⏳ Esperando a que el resto termine este vino...</div>
+      <div style="font-size:12px;color:#b47850;margin-top:8px;letter-spacing:1px">${count}/${totalParticipants} catadores listos</div>
+      <div style="font-size:11px;color:#9a7a60;margin-top:6px">La dispersión y los promedios se mostrarán apenas todos fijen sus valores.</div>
+    </div>`;
+  }
+  // Helper: decide whether to show the waiting message or the full comparison
+  function buildWaitingOrCompHtml(otScores, otEntries){
+    const count=otScores.length+1;
+    if(count<totalParticipants) return buildWaitingHtml(count);
+    return buildCompHtml(otScores, otEntries);
+  }
+
+  let compHtml=buildWaitingOrCompHtml(otrosScores,otrosEntries);
+  // Helper: build dispersion+consensus HTML from entries list
+  function buildCompHtml(otScores, otEntries){
+    if(otScores.length===0){
+      return `<div style="margin-top:16px;padding:12px;background:rgba(180,120,80,0.06);border-radius:10px;text-align:center;font-size:13px;color:#9a7a60">Sos el primero en calificar este vino 🍷<br><span style="font-size:11px">La dispersión se irá actualizando a medida que los demás fijen sus valores.</span></div>`;
+    }
+    const avg2=(otScores.reduce((a,b)=>a+b,0)/otScores.length).toFixed(1);
+    const max2=Math.max(...otScores);
+    const min2=Math.min(...otScores);
+    const allSc=[myScore,...otScores];
+    const maxAll2=Math.max(...allSc)||1;
+    const bar=`<div style="position:relative;height:28px;background:rgba(255,255,255,0.04);border-radius:6px;overflow:visible;margin-top:4px">
+      ${otScores.map(s=>{const pct=Math.round(s/maxAll2*100);return `<div style="position:absolute;bottom:0;left:${pct}%;transform:translateX(-50%);width:4px;height:20px;background:rgba(120,180,220,0.5);border-radius:2px"></div>`;}).join('')}
+      <div style="position:absolute;bottom:0;left:${Math.round(myScore/maxAll2*100)}%;transform:translateX(-50%);width:4px;height:28px;background:${color};border-radius:2px;box-shadow:0 0 6px ${color}"></div>
+    </div>
+    <div style="font-size:11px;color:#9a7a60;margin-top:6px;text-align:center">Tu puntaje en ${colorName(color)} · Otros en azul</div>`;
+    let consHtml='';
+    if(otEntries.length>0){
+      const n2=otEntries.length; const half2=n2/2;
+      const maSi=otEntries.filter(e=>e.madera==='Sí').length;
+      const maNo=otEntries.filter(e=>e.madera==='No').length;
+      if(maSi>half2) consHtml+=`<div style="margin-top:6px;font-size:12px;color:#c9a84c">🪵 Mayoría eligió: <strong>Con madera</strong> (${maSi}/${n2})</div>`;
+      else if(maNo>half2) consHtml+=`<div style="margin-top:6px;font-size:12px;color:#c9a84c">🪵 Mayoría eligió: <strong>Sin madera</strong> (${maNo}/${n2})</div>`;
+      if(maSi>half2){const mc={};otEntries.filter(e=>e.madera==='Sí'&&e.maderaMeses).forEach(e=>{mc[e.maderaMeses]=(mc[e.maderaMeses]||0)+1;});Object.entries(mc).forEach(([m,c])=>{if(c>half2) consHtml+=`<div style="margin-top:4px;font-size:12px;color:#c9a84c">&nbsp;&nbsp;↳ Meses: <strong>${m}</strong> (${c}/${n2})</div>`;});}
+      const cc={};otEntries.filter(e=>e.cepa).forEach(e=>{cc[e.cepa]=(cc[e.cepa]||0)+1;});Object.entries(cc).forEach(([c,cnt])=>{if(cnt>half2) consHtml+=`<div style="margin-top:6px;font-size:12px;color:#c9a84c">🍇 Mayoría eligió: <strong>${c}</strong> (${cnt}/${n2})</div>`;});
+      const rc={};otEntries.filter(e=>e.region).forEach(e=>{rc[e.region]=(rc[e.region]||0)+1;});Object.entries(rc).forEach(([r,cnt])=>{if(cnt>half2) consHtml+=`<div style="margin-top:6px;font-size:12px;color:#c9a84c">📍 Mayoría eligió: <strong>${r}</strong> (${cnt}/${n2})</div>`;});
+      const ac={};otEntries.filter(e=>e.anio).forEach(e=>{ac[e.anio]=(ac[e.anio]||0)+1;});Object.entries(ac).forEach(([a,cnt])=>{if(cnt>half2) consHtml+=`<div style="margin-top:6px;font-size:12px;color:#c9a84c">📅 Mayoría eligió: <strong>${a}</strong> (${cnt}/${n2})</div>`;});
+    }
+    return `<div style="margin-top:20px;padding:16px;background:rgba(80,140,180,0.08);border:1px solid rgba(80,140,180,0.25);border-radius:14px">
+      <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#7ab0d0;margin-bottom:12px">📊 Dispersión de la mesa</div>
+      <div style="display:flex;justify-content:space-around;text-align:center;margin-bottom:14px">
+        <div><div style="font-size:22px;font-weight:bold;color:${color}">${myScore}</div><div style="font-size:11px;color:#9a7a60">Tu valoración</div></div>
+        <div><div style="font-size:22px;font-weight:bold;color:#7ab0d0">${avg2}</div><div style="font-size:11px;color:#9a7a60">Prom. otros</div></div>
+        <div><div style="font-size:16px;color:#9a7a60">${min2}–${max2}</div><div style="font-size:11px;color:#9a7a60">Rango otros</div></div>
+      </div>
+      ${bar}
+      ${consHtml?`<div style="margin-top:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;border-top:1px solid rgba(180,120,80,0.15)"><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#b47850;margin-bottom:6px">Consenso de la mesa</div>${consHtml}</div>`:''}
+    </div>`;
+  }
+
+  // Inject comparison block
+  const saveBtn=document.getElementById('save-btn');
+  let compDiv=document.getElementById('dispersion-block');
+  if(!compDiv){compDiv=document.createElement('div');compDiv.id='dispersion-block';saveBtn.parentNode.insertBefore(compDiv,saveBtn);}
+  compDiv.innerHTML=compHtml;
+
+  // Lock visual
+  const card=document.querySelector('#screen-form .card');
+  if(card) card.style.opacity='0.85';
+  document.getElementById('form-title').textContent=`✅ Vino ${idx+1} fijado`;
+
+  // Button + unified poll (refreshes dispersion AND checks completion every 5s)
+  function applyBtnState(count){
+    const done=count>=totalParticipants;
+    if(isLast){
+      saveBtn.textContent='Finalizar cata 🏆';
+      saveBtn.disabled=false; saveBtn.style.opacity='1';
+      saveBtn.onclick=()=>avanzarVino();
+    } else if(done){
+      saveBtn.textContent='Pasar al siguiente vino →';
+      saveBtn.disabled=false; saveBtn.style.opacity='1';
+      saveBtn.onclick=()=>avanzarVino();
+    } else {
+      saveBtn.textContent=`Esperando catadores... (${count}/${totalParticipants})`;
+      saveBtn.disabled=true; saveBtn.style.opacity='0.5';
+    }
+  }
+  applyBtnState(otrosScores.length+1);
+
+  if(window._waitPoll) clearInterval(window._waitPoll);
+  if(!isLast){
+    window._waitPoll=setInterval(async()=>{
+      const s=await db.ref('entries').get();
+      if(!s.exists()) return;
+      const all=Object.values(s.val());
+      const forThisWine=all.filter(e=>e.wineIdx===idx);
+      const newOtros=forThisWine.filter(e=>e.nombre!==state.nombre);
+      const newScores=newOtros.map(calcRealScore);
+      // Refresh dispersion block (waiting message until everyone is done)
+      compDiv.innerHTML=buildWaitingOrCompHtml(newScores, newOtros);
+      applyBtnState(forThisWine.length);
+      if(forThisWine.length>=totalParticipants){
+        clearInterval(window._waitPoll); window._waitPoll=null;
+      }
+    },1000);
+  }
+}
+
+async function avanzarVino(){
+  if(window._waitPoll){clearInterval(window._waitPoll);window._waitPoll=null;}
+  const idx=state.currentWine;
+  const total=state.config.vinos;
+  if(idx+1<total){
+    state.currentWine++;
+    state.form=emptyForm();
+    saveSession();
+    document.getElementById('input-precio').value='';
+    // Remove dispersion block
+    const d=document.getElementById('dispersion-block');if(d)d.remove();
+    // Re-enable inputs
+    document.querySelectorAll('#screen-form input[type=range]').forEach(el=>el.disabled=false);
+    document.querySelectorAll('#screen-form .chip, #screen-form .dog-chip').forEach(el=>el.style.pointerEvents='');
+    const card=document.querySelector('#screen-form .card');
+    if(card) card.style.opacity='1';
+    renderForm();window.scrollTo(0,0);
+  } else {
+    state.finished=true;
+    saveSession();
+    document.getElementById('espera-logo').textContent='Cata a Ciegas · Suche & JP · '+state.nombre;
+    goTo('screen-espera');startRevealPolling();
+  }
+}
+
+function startRevealPolling(){
+  if(revealPolling)clearInterval(revealPolling);
+  revealPolling=setInterval(async()=>{
+    const snap=await db.ref('reveal').get();
+    if(snap.exists()){clearInterval(revealPolling);state.revealData=snap.val();loadAndShowResults();}
+  },4000);
+}
+
+// Admin reveal
+async function goToReveal(){
+  const n=state.config.vinos;
+  if(!state.revealData||state.revealData.length!==n) state.revealData=Array(n).fill(null).map(emptyReveal);
+  // Always reload entries from Firebase so the dropdown has fresh participant names
+  const snap=await db.ref('entries').get();
+  if(snap.exists()){
+    const freshData={};
+    Object.values(snap.val()).forEach(e=>{
+      if(!freshData[e.wineIdx])freshData[e.wineIdx]=[];
+      freshData[e.wineIdx].push(e);
+    });
+    cachedAllData=freshData;
+  }
+  renderReveal();goTo('screen-admin-reveal');
+}
+
+function renderReveal(){
+  const container=document.getElementById('reveal-container');container.innerHTML='';
+  // Gather participant names from entries
+  const participantNames=[...new Set(Object.values(cachedAllData).flatMap(arr=>arr.map(e=>e.nombre)))].filter(Boolean).sort();
+  for(let idx=0;idx<state.config.vinos;idx++){
+    const wc=WINE_COLORS[idx%WINE_COLORS.length];
+    const rf=state.revealData[idx]||emptyReveal();
+    const cepasHtml=CEPAS.map(c=>`<button class="chip ${rf.cepa===c?'selected':''}" onclick="setRevealCepa(${idx},'${c}')">${c}</button>`).join('');
+    const regHtml=REGIONES.map(r=>`<button class="chip ${rf.region===r?'selected':''}" onclick="setRevealRegion(${idx},'${r}')">${r}</button>`).join('');
+    const mesesHtml=['6 meses','12 meses','18 meses'].map(m=>`<button class="chip ${rf.maderaMeses===m?'selected':''}" onclick="setRevealMeses(${idx},'${m}')">${m}</button>`).join('');
+    const anioVal=rf.anio||2012;
+    // Dropdown de quién lo trajo con nombres de catadores + Administrador
+    const allTraidoNames=['Administrador',...participantNames];
+    const traidoOptions=allTraidoNames.map(n=>`<option value="${n}"${rf.traido===n?' selected':''}>${n}</option>`).join('');
+    const card=document.createElement('div');
+    card.className='card';card.style.borderLeft=`3px solid ${wc}`;card.style.marginTop='20px';
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+        <div class="wine-dot" style="background:${wc}"></div>
+        <strong style="font-size:16px">Vino ${idx+1}</strong>
+        ${rf.esElPerro?'<span style="color:#f0a500;font-size:18px">🐶 EL PERRO</span>':''}
+      </div>
+      <div class="field-label">Nombre del vino</div>
+      <input type="text" class="small-input" id="nombre-vino-${idx}" value="${rf.nombre||''}" placeholder="Ej: Achaval Ferrer Malbec" style="margin-bottom:8px" onchange="setRevealField(${idx},'nombre',this.value)"/>
+      <div class="field-label" style="margin-top:4px">¿Quién lo trajo?</div>
+      <select class="small-input" style="margin-bottom:16px" onchange="setRevealField(${idx},'traido',this.value)">
+        <option value="">— Seleccioná —</option>
+        ${traidoOptions}
+      </select>
+      <div class="field-label">Cepa real</div>
+      <div class="chip-row" style="margin-bottom:16px">${cepasHtml}</div>
+      <div class="field-label">Año real</div>
+      <div class="slider-row" style="margin-bottom:14px">
+        <div class="slider-label"><span style="font-size:13px;color:#f0e6d3">📅 Año</span><span class="slider-pct" id="reveal-anio-display-${idx}" style="font-size:18px">${anioVal}</span></div>
+        <input type="range" min="2000" max="2025" value="${anioVal}" style="width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background:rgba(180,120,80,0.2)" oninput="setRevealAnio(${idx},this.value)"/>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#9a7a60;margin-top:4px"><span>2000</span><span>2025</span></div>
+      </div>
+      <div class="field-label">Región real</div>
+      <div class="chip-row" style="margin-bottom:16px">${regHtml}</div>
+      <div class="field-label">¿Tuvo paso por madera?</div>
+      <div class="chip-row" style="margin-bottom:8px">
+        <button class="chip ${rf.tuveMadera===true?'selected':''}" onclick="setRevealMadera(${idx},true)">Sí</button>
+        <button class="chip ${rf.tuveMadera===false?'selected':''}" onclick="setRevealMadera(${idx},false)">No</button>
+      </div>
+      ${rf.tuveMadera?`<div class="chip-row" style="margin-bottom:16px">${mesesHtml}</div>`:'<div style="margin-bottom:16px"></div>'}
+      <div class="field-label">Precio real</div>
+      <input type="text" class="small-input" value="${rf.precio||''}" placeholder="Ej: 8500" style="margin-bottom:16px" onchange="setRevealField(${idx},'precio',this.value)"/>
+      <div class="chip-row">
+        <button class="dog-chip ${rf.esElPerro?'selected':''}" onclick="setPerroReveal(${idx})">🐶 Este es el perro</button>
+        ${rf.esElPerro?`<button class="chip" onclick="clearPerroReveal(${idx})">Quitar</button>`:''}
+      </div>`;
+    container.appendChild(card);
+  }
+}
+
+function setRevealCepa(idx,c){state.revealData[idx].cepa=c;renderReveal();}
+function setRevealRegion(idx,r){state.revealData[idx].region=r;renderReveal();}
+function setRevealField(idx,f,v){state.revealData[idx][f]=v;}
+function setRevealAnio(idx,v){state.revealData[idx].anio=v;document.getElementById(`reveal-anio-display-${idx}`).textContent=v;}
+function setRevealMadera(idx,v){state.revealData[idx].tuveMadera=v;if(!v)state.revealData[idx].maderaMeses=null;renderReveal();}
+function setRevealMeses(idx,m){state.revealData[idx].maderaMeses=m;renderReveal();}
+function setPerroReveal(idx){state.revealData.forEach((r,i)=>r.esElPerro=i===idx);renderReveal();}
+function clearPerroReveal(idx){state.revealData[idx].esElPerro=false;renderReveal();}
+
+async function saveReveal(){
+  await db.ref('reveal').set(state.revealData);
+  await loadAndShowResults();
+}
+
+function calcScore(entry,reveal){
+  if(!reveal)return 0;
+  let pts=0;
+  if(entry.cepa&&reveal.cepa&&entry.cepa.toLowerCase().trim()===reveal.cepa.toLowerCase().trim())pts+=3;
+  const ea=parseInt(entry.anio),ra=parseInt(reveal.anio);
+  if(!isNaN(ea)&&!isNaN(ra)){const d=Math.abs(ea-ra);if(d===0)pts+=2;else if(d<=2)pts+=1;}
+  if(entry.region&&reveal.region&&entry.region.toLowerCase().trim()===reveal.region.toLowerCase().trim())pts+=1;
+  const ep=parseFloat(entry.precio),rp=parseFloat(reveal.precio);
+  if(!isNaN(ep)&&!isNaN(rp)&&rp>0&&Math.abs(ep-rp)/rp<=0.2)pts+=1;
+  // Madera: 2pts por acertar sí/no, +1pt adicional por meses exactos
+  const entryTuveMadera=(entry.madera==='Sí');
+  const revealTuveMadera=(reveal.tuveMadera===true);
+  if(entryTuveMadera===revealTuveMadera)pts+=2;
+  if(revealTuveMadera&&reveal.maderaMeses&&entry.madera==='Sí'&&entry.maderaMeses===reveal.maderaMeses)pts+=1;
+  // Perro: duplica puntos solo de este vino
+  if(entry.esElPerro===true&&reveal.esElPerro===true)pts*=2;
+  return pts;
+}
+
+async function loadAndShowResults(){
+  const [eSnap,rSnap,cSnap]=await Promise.all([db.ref('entries').get(),db.ref('reveal').get(),db.ref('config').get()]);
+  if(cSnap.exists())state.config=cSnap.val();
+  const numVinos=state.config?.vinos||0;
+  const WINES=Array.from({length:numVinos},(_,i)=>`Vino ${i+1}`);
+  const allData={};
+  if(eSnap.exists())Object.values(eSnap.val()).forEach(e=>{if(!allData[e.wineIdx])allData[e.wineIdx]=[];allData[e.wineIdx].push(e);});
+  const revealData=rSnap.exists()?rSnap.val():[];
+  cachedAllData=allData;cachedReveal=revealData;
+  const hasReveals=revealData.some(r=>r&&(r.cepa||r.anio));
+  const medals=['🥇','🥈','🥉'];
+
+  // Catador scores
+  const catadorScores={};
+  const catadorNames={};// track real display names
+  for(let idx=0;idx<numVinos;idx++){
+    const entries=allData[idx]||[];
+    const rev=revealData[idx];
+    entries.forEach(e=>{
+      if(!catadorScores[e.nombre])catadorScores[e.nombre]=0;
+      catadorNames[e.nombre]=e.nombre;
+      catadorScores[e.nombre]+=calcScore(e,rev);
+    });
+  }
+  const ranking=Object.entries(catadorScores).sort((a,b)=>b[1]-a[1]);
+
+  // Wine ranking by total score
+  const wineRanking=WINES.map((wine,idx)=>{
+    const entries=allData[idx]||[];
+    const scores=entries.map(e=>calcRealScore(e)).filter(s=>s>0);
+    const avg=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:0;
+    return{wine,idx,avg,entries};
+  }).sort((a,b)=>b.avg-a.avg);
+
+  let html='';
+
+  // Winner/loser banners
+  if(hasReveals&&ranking.length>0){
+    const winner=ranking[0];
+    const loser=ranking[ranking.length-1];
+    html+=`<div class="winner-banner">
+      <div style="font-size:48px">🏆</div>
+      <div style="font-size:22px;font-weight:bold;color:#c9a84c;margin:8px 0">${winner[0]}</div>
+      <div style="font-size:14px;color:#b47850">¡El mejor catador de la mesa con ${winner[1]} puntos!</div>
+      <div style="font-size:13px;color:#9a7a60;margin-top:8px;font-style:italic">El paladar no miente... o sí, pero el tuyo no.</div>
+    </div>`;
+    if(loser[0]!==winner[0]){
+      html+=`<div class="loser-banner">
+        <div style="font-size:32px">🥴</div>
+        <div style="font-size:16px;font-weight:bold;color:#e07070;margin:6px 0">${loser[0]}</div>
+        <div style="font-size:13px;color:#9a7a60">Con ${loser[1]} puntos... quizás el vino no es lo tuyo. ¡Pero el asado seguro que sí! 😂</div>
+      </div>`;
+    }
+  }
+
+  // Best/worst wine banners
+  if(wineRanking.length>0){
+    const bestWine=wineRanking[0];
+    const worstWine=wineRanking[wineRanking.length-1];
+    const bRev=revealData[bestWine.idx];
+    const wRev=revealData[worstWine.idx];
+    html+=`<div style="margin-top:16px;padding:16px;background:rgba(120,180,80,0.08);border:1px solid rgba(120,180,80,0.25);border-radius:14px;text-align:center">
+      <div style="font-size:28px">🍾</div>
+      <div style="font-size:15px;font-weight:bold;color:#8bc;margin:6px 0">Mejor vino: ${bestWine.wine}${bRev?.nombre?' · '+bRev.nombre:''}</div>
+      <div style="font-size:12px;color:#9a7a60">${bRev?.traido?'Traído por '+bRev.traido:''} · Promedio: ${bestWine.avg.toFixed(0)} pts</div>
+    </div>`;
+    if(worstWine.idx!==bestWine.idx){
+      html+=`<div style="margin-top:10px;padding:16px;background:rgba(180,80,80,0.08);border:1px solid rgba(180,80,80,0.2);border-radius:14px;text-align:center">
+        <div style="font-size:28px">🍶</div>
+        <div style="font-size:14px;font-weight:bold;color:#e07070;margin:6px 0">Vino más humilde: ${worstWine.wine}${wRev?.nombre?' · '+wRev.nombre:''}</div>
+        <div style="font-size:12px;color:#9a7a60">${wRev?.traido?'Traído por '+wRev.traido:''} · Promedio: ${worstWine.avg.toFixed(0)} pts. ¡Al menos llegó a la mesa! 😅</div>
+      </div>`;
+    }
+  }
+
+  // Catador ranking
+  if(hasReveals&&ranking.length>0){
+    html+=`<div style="margin-top:24px"><div style="font-size:10px;letter-spacing:3px;color:#b47850;text-transform:uppercase;margin-bottom:12px">🏆 Ranking catadores</div><div class="ranking-card">`;
+    ranking.forEach(([nom,pts],i)=>{html+=`<div class="ranking-row"><span style="font-size:${i<3?'22px':'15px'};min-width:30px">${i<3?medals[i]:`${i+1}.`}</span><span style="flex:1;color:#f0e6d3;font-weight:${i===0?'bold':'normal'}">${nom}</span><span style="font-size:22px;font-weight:bold;color:#b47850">${pts} pts</span></div>`;});
+    html+='</div></div>';
+  }
+
+  // Wine ranking
+  html+=`<div style="margin-top:24px"><div style="font-size:10px;letter-spacing:3px;color:#b47850;text-transform:uppercase;margin-bottom:12px">🍷 Ranking vinos</div><div class="ranking-card">`;
+  wineRanking.forEach((r,i)=>{
+    const rev=revealData[r.idx];const wc=WINE_COLORS[r.idx%WINE_COLORS.length];
+    const label=rev?.nombre?`${r.wine} · ${rev.nombre}`:r.wine;
+    html+=`<div class="ranking-row"><span style="font-size:${i<3?'22px':'15px'};min-width:30px">${i<3?medals[i]:`${i+1}.`}</span><div style="flex:1"><div style="color:#f0e6d3;font-weight:${i===0?'bold':'normal'}">${label} ${rev?.esElPerro?'🐶':''}</div>${rev?.traido?`<div class="small-text">Trajo: ${rev.traido}</div>`:''}</div><span style="font-size:22px;font-weight:bold;color:${wc}">${r.avg?r.avg.toFixed(0):'—'}</span></div>`;
+  });
+  html+='</div></div>';
+
+  // Detail per wine
+  html+=`<div style="font-size:10px;letter-spacing:3px;color:#b47850;text-transform:uppercase;margin-top:28px;margin-bottom:4px">Detalle por vino</div>`;
+  WINES.forEach((wine,idx)=>{
+    const entries=allData[idx]||[];
+    const wc=WINE_COLORS[idx%WINE_COLORS.length];
+    const scores=entries.map(e=>calcRealScore(e));
+    const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(0):'—';
+    const rev=revealData[idx];
+    const label=rev?.nombre?`${wine} · ${rev.nombre}`:wine;
+    html+=`<div class="detail-card">
+      <div class="flex-row" style="margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="wine-dot" style="background:${wc}"></div>
+          <strong style="font-size:15px">${label} ${rev?.esElPerro?'🐶':''}</strong>
+        </div>
+        <span style="font-size:22px;font-weight:bold;color:${wc}">${avg}</span>
+      </div>`;
+    if(rev?.traido) html+=`<div style="font-size:12px;color:#9a7a60;margin-bottom:4px">👤 Trajo: ${rev.traido}</div>`;
+    if(rev?.cepa) html+=`<div style="font-size:12px;color:#b47850;margin-bottom:10px">✓ ${rev.cepa}${rev.anio?` · ${rev.anio}`:''}${rev.region?` · ${rev.region}`:''}${rev.precio?` · $${rev.precio}`:''}${rev.tuveMadera===true?` · 🪵 ${rev.maderaMeses||'Madera'}`:rev.tuveMadera===false?' · Sin madera':''}</div>`;
+    if(!entries.length) html+=`<div style="color:#9a7a60;font-size:13px">Sin respuestas</div>`;
+    entries.forEach(e=>{
+      const pts=hasReveals?calcScore(e,rev):null;
+      const total=calcRealScore(e);
+      html+=`<div class="participant-row">
+        <div class="flex-row">
+          <span style="font-weight:bold;color:#f0e6d3">${e.nombre} ${e.esElPerro===true?'🐶':''}</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            ${pts!==null?`<span style="font-size:12px;color:#b47850">+${pts}pts</span>`:''}
+            <span style="font-size:20px;font-weight:bold;color:${wc}">${total||'—'}</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#9a7a60;margin-top:6px;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;line-height:1.9">
+          <div>🎨 Color: ${e.colorPct||0}% &nbsp;·&nbsp; 👃 Aroma: ${e.aromaPct||0}% &nbsp;·&nbsp; 👅 Sabor: ${e.saborPct||0}% &nbsp;·&nbsp; ✨ Imp: ${e.impresionPct||0}%</div>
+          <div>🍇 ${e.cepa||'—'} &nbsp;·&nbsp; 📅 ${e.anio||'—'} &nbsp;·&nbsp; 📍 ${e.region||'—'}</div>
+          <div>🪵 ${e.madera==='Sí'?(e.maderaMeses||'Sí'):'No'} &nbsp;·&nbsp; 💰 ${e.precio?'$'+e.precio:'—'}</div>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+
+  document.getElementById('resultados-content').innerHTML=html;
+  document.getElementById('btn-editar-reveal').style.display=state.isAdmin?'block':'none';
+  goTo('screen-resultados');
+  renderEstadisticas();
+}
+
+// ESTADISTICAS
+function renderEstadisticas(){
+  const allData=cachedAllData;
+  const revealData=cachedReveal;
+  const cfg=state.config;
+  if(!cfg)return;
+  const numVinos=cfg.vinos;
+  const WINES=Array.from({length:numVinos},(_,i)=>`Vino ${i+1}`);
+
+  // Build wine data
+  const wineStats=WINES.map((wine,idx)=>{
+    const entries=allData[idx]||[];
+    const rev=revealData[idx]||{};
+    const scores=entries.map(e=>calcRealScore(e)).filter(s=>s>0);
+    const colorScores=entries.map(e=>Math.round((e.colorPct||0)/100*SCORE_MAX.color));
+    const aromaScores=entries.map(e=>Math.round((e.aromaPct||0)/100*SCORE_MAX.aroma));
+    const saborScores=entries.map(e=>Math.round((e.saborPct||0)/100*SCORE_MAX.sabor));
+    const impScores=entries.map(e=>Math.round((e.impresionPct||0)/100*SCORE_MAX.impresion));
+    const avg=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:0;
+    const max=scores.length?Math.max(...scores):0;
+    const min=scores.length?Math.min(...scores):0;
+    const dispersion=max-min;
+    const precio=parseFloat(rev.precio)||0;
+    const label=rev.nombre?`${wine} · ${rev.nombre}`:wine;
+    const avgColor=colorScores.length?colorScores.reduce((a,b)=>a+b,0)/colorScores.length:0;
+    const avgAroma=aromaScores.length?aromaScores.reduce((a,b)=>a+b,0)/aromaScores.length:0;
+    const avgSabor=saborScores.length?saborScores.reduce((a,b)=>a+b,0)/saborScores.length:0;
+    const avgImp=impScores.length?impScores.reduce((a,b)=>a+b,0)/impScores.length:0;
+    return{wine,idx,label,entries,scores,avg,max,min,dispersion,precio,rev,avgColor,avgAroma,avgSabor,avgImp};
+  });
+
+  // Cepa accuracy
+  const cepaTotals={};const cepaAciertos={};
+  for(let idx=0;idx<numVinos;idx++){
+    const rev=revealData[idx];if(!rev?.cepa)continue;
+    const entries=allData[idx]||[];
+    if(!cepaTotals[rev.cepa])cepaTotals[rev.cepa]=0;
+    if(!cepaAciertos[rev.cepa])cepaAciertos[rev.cepa]=0;
+    entries.forEach(e=>{
+      cepaTotals[rev.cepa]++;
+      if(e.cepa&&e.cepa.toLowerCase().trim()===rev.cepa.toLowerCase().trim())cepaAciertos[rev.cepa]++;
+    });
+  }
+  const cepaPct=Object.entries(cepaTotals).map(([c,t])=>({cepa:c,pct:t>0?Math.round(cepaAciertos[c]/t*100):0,total:t})).sort((a,b)=>b.pct-a.pct);
+
+  // Precio-puntaje correlation data
+  const precioPuntaje=wineStats.filter(w=>w.precio>0&&w.avg>0).map(w=>({label:w.label,precio:w.precio,avg:w.avg}));
+
+  let html='';
+
+  const withScores=wineStats.filter(w=>w.scores.length>0);
+  if(!withScores.length){html='<div style="color:#9a7a60;text-align:center;padding:30px;font-size:14px">Las estadísticas estarán disponibles una vez que se carguen los datos reales.</div>';document.getElementById('estadisticas-content').innerHTML=html;return;}
+
+  // 1. Más polémico
+  const masPolemico=wineStats.reduce((a,b)=>b.dispersion>a.dispersion?b:a,wineStats[0]);
+  // 2. Más consensuado
+  const masConsensuo=wineStats.filter(w=>w.scores.length>0).reduce((a,b)=>b.dispersion<a.dispersion?b:a,wineStats[0]);
+  // 3. Mejor calidad-precio
+  const conPrecio=wineStats.filter(w=>w.precio>0&&w.avg>0);
+  const mejorCP=conPrecio.length?conPrecio.reduce((a,b)=>b.avg/b.precio>a.avg/a.precio?b:a,conPrecio[0]):null;
+  // 4-7
+  const mejorAroma=wineStats.reduce((a,b)=>b.avgAroma>a.avgAroma?b:a,wineStats[0]);
+  const mejorColor=wineStats.reduce((a,b)=>b.avgColor>a.avgColor?b:a,wineStats[0]);
+  const mejorSabor=wineStats.reduce((a,b)=>b.avgSabor>a.avgSabor?b:a,wineStats[0]);
+  const mejorImp=wineStats.reduce((a,b)=>b.avgImp>a.avgImp?b:a,wineStats[0]);
+
+  html+=`<div style="margin-top:16px">`;
+
+  // Row 1
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+    <div class="stat-card"><div class="stat-title">🔥 Más polémico</div><div class="stat-value">${masPolemico.label}</div><div class="stat-sub">Diferencia: ${masPolemico.dispersion} pts (${masPolemico.min}–${masPolemico.max})</div></div>
+    <div class="stat-card"><div class="stat-title">🤝 Más consensuado</div><div class="stat-value">${masConsensuo.label}</div><div class="stat-sub">Diferencia: ${masConsensuo.dispersion} pts</div></div>
+    ${mejorCP?`<div class="stat-card"><div class="stat-title">💎 Mejor calidad-precio</div><div class="stat-value">${mejorCP.label}</div><div class="stat-sub">${mejorCP.avg.toFixed(0)} pts · $${mejorCP.precio}</div></div>`:''}
+    <div class="stat-card"><div class="stat-title">👃 Mejor aroma</div><div class="stat-value">${mejorAroma.label}</div><div class="stat-sub">${mejorAroma.avgAroma.toFixed(1)} pts prom.</div></div>
+    <div class="stat-card"><div class="stat-title">🎨 Mejor color</div><div class="stat-value">${mejorColor.label}</div><div class="stat-sub">${mejorColor.avgColor.toFixed(1)} pts prom.</div></div>
+    <div class="stat-card"><div class="stat-title">👅 Mejor sabor</div><div class="stat-value">${mejorSabor.label}</div><div class="stat-sub">${mejorSabor.avgSabor.toFixed(1)} pts prom.</div></div>
+    <div class="stat-card"><div class="stat-title">✨ Mejor impresión</div><div class="stat-value">${mejorImp.label}</div><div class="stat-sub">${mejorImp.avgImp.toFixed(1)} pts prom.</div></div>
+  </div>`;
+
+  // Cepa accuracy
+  if(cepaPct.length>0){
+    html+=`<div class="stat-card" style="margin-top:12px"><div class="stat-title">🍇 Aciertos por cepa</div><div class="chart-bar-container">`;
+    cepaPct.forEach(c=>{
+      html+=`<div class="chart-bar-row">
+        <div class="chart-bar-label">${c.cepa}</div>
+        <div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:${c.pct}%;background:#7B1E3A"></div></div>
+        <div class="chart-bar-val">${c.pct}%</div>
+      </div>`;
+    });
+    const masF=cepaPct[0];const masD=cepaPct[cepaPct.length-1];
+    html+=`</div><div class="stat-sub" style="margin-top:8px">Más fácil: <strong>${masF.cepa}</strong> (${masF.pct}%) · Más difícil: <strong>${masD.cepa}</strong> (${masD.pct}%)</div></div>`;
+  }
+
+  // Precio-puntaje
+  if(precioPuntaje.length>1){
+    const maxPrecio=Math.max(...precioPuntaje.map(p=>p.precio));
+    html+=`<div class="stat-card" style="margin-top:12px"><div class="stat-title">💰 Precio vs Puntaje</div><div class="chart-bar-container">`;
+    precioPuntaje.sort((a,b)=>b.precio-a.precio).forEach(p=>{
+      const barPrecio=Math.round(p.precio/maxPrecio*100);
+      const barPuntaje=Math.round(p.avg);
+      html+=`<div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#f0e6d3;margin-bottom:4px">${p.label}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <div style="width:60px;font-size:11px;color:#9a7a60">Precio</div>
+          <div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:${barPrecio}%;background:#5C2D5A"></div></div>
+          <div class="chart-bar-val">$${p.precio}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="width:60px;font-size:11px;color:#9a7a60">Puntaje</div>
+          <div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:${barPuntaje}%;background:#b47850"></div></div>
+          <div class="chart-bar-val">${p.avg.toFixed(0)}</div>
+        </div>
+      </div>`;
+    });
+    // Simple correlation comment
+    const sorted=precioPuntaje.sort((a,b)=>b.precio-a.precio);
+    const topHalf=sorted.slice(0,Math.ceil(sorted.length/2));
+    const botHalf=sorted.slice(Math.ceil(sorted.length/2));
+    const avgTop=topHalf.reduce((a,b)=>a+b.avg,0)/topHalf.length;
+    const avgBot=botHalf.reduce((a,b)=>a+b.avg,0)/botHalf.length;
+    const corr=avgTop>avgBot?'✅ Los vinos más caros tendieron a tener mejor puntaje.':'❌ El precio no fue garantía de mejor puntaje.';
+    html+=`<div class="stat-sub" style="margin-top:8px">${corr}</div></div>`;
+  }
+
+  html+='</div>';
+  document.getElementById('estadisticas-content').innerHTML=html;
+}
+
+function printResults(){
+  const content=document.getElementById('resultados-content').innerHTML;
+  const win=window.open('','_blank');
+  win.document.write(`<html><head><title>Resultados Cata a Ciegas</title><style>body{font-family:Georgia,serif;padding:20px;color:#1a0a0f;}.small-text{font-size:12px;color:#555;}.detail-card{border:1px solid #ccc;border-radius:8px;padding:16px;margin:12px 0;}.participant-row{padding:8px 0;border-bottom:1px solid #eee;}.flex-row{display:flex;justify-content:space-between;}.ranking-card{border:1px solid #ccc;border-radius:8px;padding:16px;margin:12px 0;}.ranking-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #eee;}.wine-dot{width:8px;height:8px;border-radius:50%;background:#7B1E3A;display:inline-block;}.winner-banner,.loser-banner{border:1px solid #ccc;border-radius:8px;padding:16px;margin:12px 0;text-align:center;}</style></head><body><h1>Cata a Ciegas · Suche & JP</h1>${content}</body></html>`);
+  win.document.close();win.print();
+}
+
+function printStats(){
+  const content=document.getElementById('estadisticas-content').innerHTML;
+  const win=window.open('','_blank');
+  win.document.write(`<html><head><title>Estadísticas Cata a Ciegas</title><style>body{font-family:Georgia,serif;padding:20px;color:#1a0a0f;}.stat-card{border:1px solid #ccc;border-radius:8px;padding:14px;margin:10px 0;}.stat-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#7B1E3A;margin-bottom:6px;}.stat-value{font-size:16px;font-weight:bold;}.stat-sub{font-size:12px;color:#555;margin-top:4px;}.chart-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}.chart-bar-label{width:80px;font-size:12px;color:#555;}.chart-bar-wrap{flex:1;background:#eee;border-radius:4px;height:16px;}.chart-bar-fill{height:100%;background:#7B1E3A;border-radius:4px;}.chart-bar-val{width:40px;font-size:12px;text-align:right;}</style></head><body><h1>Estadísticas · Cata a Ciegas · Suche & JP</h1>${content}</body></html>`);
+  win.document.close();win.print();
+}
+
+function volverAInforme(){
+  document.getElementById('informe-content').style.display='none';
+  document.getElementById('informe-loading').style.display='none';
+}
+
+async function generarInformePersonal(){
+  const nombre=state.nombre;
+  if(!nombre){alert('No se detectó tu nombre de catador. Volvé a ingresar como participante.');return;}
+  document.getElementById('informe-loading').style.display='block';
+  document.getElementById('informe-content').style.display='none';
+
+  const allData=cachedAllData;
+  const revealData=cachedReveal;
+  const cfg=state.config;
+  const numVinos=cfg?.vinos||0;
+
+  // Build catador data
+  let totalPts=0;
+  const misVinos=[];
+  const todosLosCatadores={};
+  for(let idx=0;idx<numVinos;idx++){
+    const entries=allData[idx]||[];
+    const rev=revealData[idx]||{};
+    entries.forEach(e=>{
+      if(!todosLosCatadores[e.nombre])todosLosCatadores[e.nombre]=0;
+      todosLosCatadores[e.nombre]+=calcScore(e,rev);
+    });
+    const myEntry=entries.find(e=>e.nombre===nombre);
+    if(myEntry){
+      const pts=calcScore(myEntry,rev);
+      totalPts+=pts;
+      const realScore=calcRealScore(myEntry);
+      misVinos.push({
+        vino:`Vino ${idx+1}`,
+        nombreVino:rev.nombre||`Vino ${idx+1}`,
+        traidoPor:rev.traido||'desconocido',
+        esElPerro:rev.esElPerro||false,
+        cataLogre:myEntry.cepa===rev.cepa,
+        cepaElegida:myEntry.cepa||'—',
+        cepaReal:rev.cepa||'—',
+        anioElegido:myEntry.anio||'—',
+        anioReal:rev.anio||'—',
+        regionElegida:myEntry.region||'—',
+        regionReal:rev.region||'—',
+        maderaElegida:myEntry.madera||'—',
+        maderaReal:rev.tuveMadera===true?'Sí':rev.tuveMadera===false?'No':'—',
+        maderaMesesElegido:myEntry.maderaMeses||'—',
+        maderaMesesReal:rev.maderaMeses||'—',
+        precioElegido:myEntry.precio||'—',
+        precioReal:rev.precio||'—',
+        puntajePromedio:(()=>{const ent=allData[idx]||[];const sc=ent.map(e=>calcRealScore(e));return sc.length?(sc.reduce((a,b)=>a+b,0)/sc.length).toFixed(1):'—';})(),
+        acertoPerro:myEntry.esElPerro===true&&rev.esElPerro===true,
+        puntosObtenidos:pts,
+        puntajeCata:realScore,
+      });
+    }
+  }
+
+  const ranking=Object.entries(todosLosCatadores).sort((a,b)=>b[1]-a[1]);
+  const posicion=ranking.findIndex(([n])=>n===nombre)+1;
+  const total=ranking.length;
+
+  // Determine vino propio
+  const vinoPropio=revealData.find(r=>r?.traido===nombre);
+  const vinoPropioNombre=vinoPropio?.nombre||null;
+  const vinoPropioScore=vinoPropio?
+    (()=>{const idx=revealData.indexOf(vinoPropio);const entries=allData[idx]||[];const scores=entries.map(e=>calcRealScore(e));return scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(0):'—';})()
+    :null;
+
+  // Build search queries for wines with real names
+  const vinosConNombre=misVinos.filter(v=>v.nombreVino&&v.nombreVino!==v.vino);
+
+  const texto=construirInformeLocal(nombre,totalPts,posicion,total,ranking,misVinos,vinoPropioNombre,vinoPropioScore);
+
+  window._informeNombre=nombre;
+  window._informeTexto=texto;
+  window._informePts=totalPts;
+  window._informePosicion=posicion;
+  window._informeTotal=total;
+  const lineas=texto.split('\n').map(l=>{
+    const t=l.trim();
+    if(!t)return '<br/>';
+    if(/^[🍇🏅🍷📊💪📈🎯🍾✨]/.test(t)&&t.length<80) return `<p style="margin:22px 0 6px;font-size:15px;font-weight:bold;color:#c9a84c;letter-spacing:0.5px">${t}</p>`;
+    return `<p style="margin:6px 0;line-height:1.75;font-size:14px;color:#f0e6d3">${t}</p>`;
+  }).join('');
+  document.getElementById('informe-texto').innerHTML=`
+    <div class="card" style="margin-top:12px">
+      <div style="font-size:18px;font-weight:bold;color:#c9a84c;margin-bottom:4px">Informe de ${nombre}</div>
+      <div style="font-size:12px;color:#9a7a60;margin-bottom:16px">${totalPts} pts · ${posicion}° de ${total}</div>
+      <div>${lineas}</div>
+    </div>`;
+  document.getElementById('informe-loading').style.display='none';
+  document.getElementById('informe-content').style.display='block';
+}
+
+// ── Generador local de informes (sin IA externa, sin clave de API) ─────────
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+function construirInformeLocal(nombre,totalPts,posicion,total,ranking,misVinos,vinoPropioNombre,vinoPropioScore){
+  const esGanador=posicion===1;
+  const esUltimo=posicion===total&&total>1;
+  const arribaDeLaMitad=posicion<=Math.ceil(total/2);
+  const totalVinos=misVinos.length||1;
+
+  // ── 🍇 INTRODUCCIÓN ──────────────────────────────────────────────────────
+  const intro=pick([
+    `Otra noche de cata a ciegas llega a su fin, y como siempre, las copas dijeron más de lo que cualquiera esperaba. Acá va el resumen de cómo le fue a ${nombre} en la mesa: lo que acertó, lo que se le escapó, y algunas observaciones de regalo.`,
+    `Terminó la cata y es momento de la verdad. Repasamos copa por copa cómo navegó ${nombre} esta noche entre cepas, añadas y regiones — con sus aciertos, sus dudas, y todo lo que se puede aprender de ${totalVinos===1?'el vino':`los ${totalVinos} vinos`} que pasaron por la mesa.`,
+    `Se descorcharon las botellas, se revelaron los secretos, y ahora toca el análisis: este es el informe de la noche de ${nombre}, con cada vino bajo la lupa y el paladar puesto a prueba.`
+  ]);
+
+  // ── 🏅 RESULTADO GENERAL ─────────────────────────────────────────────────
+  let resultado;
+  if(esGanador){
+    resultado=pick([
+      `¡Ahí está el campeón de la noche! ${nombre} se quedó con el primer puesto con ${totalPts} puntos, dejando al resto de la mesa pensando si en realidad vinieron a catar o a mirar. Paladar fino, instinto certero, y seguramente más de un "no, este lo identifico al toque" durante la noche.`,
+      `${nombre} se llevó la corona de la mesa con ${totalPts} puntos. El resto de los catadores ya está pidiendo la revancha, pero por ahora toca aplaudir: esta noche el paladar no falló casi nunca.`
+    ]);
+  } else if(esUltimo){
+    resultado=pick([
+      `${nombre} cerró la tabla con ${totalPts} puntos, en el último puesto de ${total}. No todas las noches se puede ser sommelier, y está bien — el vino se disfruta igual, aunque la cepa haya quedado en el misterio.`,
+      `Esta noche el podio quedó lejos para ${nombre}, que terminó ${posicion}° de ${total} con ${totalPts} puntos. Pero como dicen por ahí, lo importante no es adivinar la cepa, es vaciar la copa.`
+    ]);
+  } else if(arribaDeLaMitad){
+    resultado=pick([
+      `${nombre} terminó ${posicion}° de ${total} con ${totalPts} puntos, en la mitad de arriba de la tabla. Una noche prolija, con más aciertos que dudas, digna de alguien que sabe lo que hace en una cata.`,
+      `Con ${totalPts} puntos, ${nombre} quedó ${posicion}° de ${total}. Ni en el podio ni en el fondo de la tabla: justo en esa zona cómoda de "sabe de esto, pero no se la cree".`
+    ]);
+  } else {
+    resultado=pick([
+      `${nombre} terminó ${posicion}° de ${total} con ${totalPts} puntos. Una noche con algunos tropiezos, pero ojo: hasta los mejores sommeliers fallan una añada de vez en cuando.`,
+      `Con ${totalPts} puntos, ${nombre} quedó ${posicion}° de ${total}. No fue la noche más certera, pero seguro fue una de las más entretenidas de la mesa.`
+    ]);
+  }
+  const topTres=ranking.slice(0,3).map(([n,p],i)=>`${['🥇','🥈','🥉'][i]} ${n} (${p}pts)`).join(' · ');
+  resultado+=`\n\nAsí quedó el podio de la noche: ${topTres}${total>3?'…':''}`;
+
+  // ── 🍷 ANÁLISIS VINO POR VINO ────────────────────────────────────────────
+  const analisisVinos=misVinos.map((v,i)=>{
+    const partes=[];
+    const tituloVino=`Vino ${i+1}${v.nombreVino&&v.nombreVino!==v.vino?` — "${v.nombreVino}"`:''}${v.esElPerro?' 🐶 (¡era EL PERRO!)':''}`;
+    partes.push(`${tituloVino}: ${v.cataLogre?`acertó la cepa, era ${v.cepaReal}.`:`tiró "${v.cepaElegida}" pero en realidad era ${v.cepaReal}.`}`);
+    if(v.anioReal!=='—'&&v.anioElegido!=='—'){
+      const diff=Math.abs(parseInt(v.anioElegido)-parseInt(v.anioReal));
+      partes.push(diff===0?`Clavó el año justo: ${v.anioReal}.`:`En año calculó ${v.anioElegido}, era del ${v.anioReal} (se fue por ${diff} año${diff===1?'':'s'}).`);
+    }
+    if(v.regionReal!=='—'){
+      partes.push(v.regionElegida===v.regionReal?`También dio en el clavo con la región: ${v.regionReal}.`:`En región tiró ${v.regionElegida}, pero era de ${v.regionReal}.`);
+    }
+    if(v.maderaReal!=='—'){
+      const maderaOk=(v.maderaElegida==='Sí'&&v.maderaReal==='Sí')||(v.maderaElegida==='No'&&v.maderaReal==='No');
+      partes.push(maderaOk?`En madera no se equivocó${v.maderaReal==='Sí'&&v.maderaMesesReal!=='—'?` (y era con ${v.maderaMesesReal} de crianza)`:''}.`:`En madera dijo "${v.maderaElegida}" y la respuesta correcta era "${v.maderaReal}".`);
+    }
+    if(v.precioReal!=='—'&&v.precioElegido!=='—'){
+      const pe=parseFloat(v.precioElegido), pr=parseFloat(v.precioReal);
+      if(!isNaN(pe)&&!isNaN(pr)&&pr>0){
+        const diffPct=Math.abs(pe-pr)/pr*100;
+        partes.push(diffPct<=20?`Calculó bien el precio: estimó $${v.precioElegido} contra un real de $${v.precioReal}.`:pe>pr?`Lo creyó más caro de lo que era: tiró $${v.precioElegido} contra un real de $${v.precioReal}.`:`Lo subestimó en precio: dijo $${v.precioElegido} cuando en realidad costaba $${v.precioReal}.`);
+      }
+    }
+    const propio=parseFloat(v.puntajeCata), prom=parseFloat(v.puntajePromedio);
+    if(!isNaN(propio)&&!isNaN(prom)){
+      if(propio>prom+5)partes.push(`A la hora de puntuarlo (0-100) fue más generoso que la mesa: le puso ${propio} contra un promedio de ${prom}.`);
+      else if(propio<prom-5)partes.push(`A la hora de puntuarlo fue más exigente que el resto: ${propio} contra un promedio de ${prom}.`);
+      else partes.push(`Su puntaje (${propio}) estuvo bien en línea con el promedio de la mesa (${prom}).`);
+    }
+    if(v.acertoPerro)partes.push(`Y para coronarla, identificó EL PERRO 🐶 — puntos extra bien ganados.`);
+    return partes.join(' ');
+  }).join('\n\n');
+
+  // ── 📊 TU PERFIL COMO CATADOR ────────────────────────────────────────────
+  const diffs=misVinos.map(v=>{const p=parseFloat(v.puntajeCata),m=parseFloat(v.puntajePromedio);return(!isNaN(p)&&!isNaN(m))?p-m:null;}).filter(d=>d!==null);
+  const avgDiff=diffs.length?diffs.reduce((a,b)=>a+b,0)/diffs.length:0;
+  const scoresPropios=misVinos.map(v=>parseFloat(v.puntajeCata)).filter(s=>!isNaN(s));
+  const promedioPropios=scoresPropios.length?scoresPropios.reduce((a,b)=>a+b,0)/scoresPropios.length:0;
+  const varianza=scoresPropios.length?scoresPropios.reduce((a,b)=>a+Math.pow(b-promedioPropios,2),0)/scoresPropios.length:0;
+  const desvio=Math.sqrt(varianza);
+
+  let perfilTipo;
+  if(avgDiff>6)perfilTipo=`generoso a la hora de puntuar: en promedio calificó ${avgDiff.toFixed(1)} puntos por encima de lo que marcó el resto de la mesa. Para ${nombre}, parece que cada copa merece el beneficio de la duda.`;
+  else if(avgDiff<-6)perfilTipo=`exigente con la copa: en promedio puntuó ${Math.abs(avgDiff).toFixed(1)} puntos por debajo de la mesa. Hay paladares que no se conforman fácil, y este es claramente uno de ellos.`;
+  else perfilTipo=`equilibrado: sus puntajes estuvieron, en promedio, bien alineados con lo que opinó el resto de la mesa (diferencia de apenas ${Math.abs(avgDiff).toFixed(1)} puntos). Ni muy blando ni muy duro — justo en el medio.`;
+
+  let perfilConsistencia;
+  if(desvio<8)perfilConsistencia=`Además, fue muy consistente: sus puntajes a lo largo de la noche se mantuvieron parejos, sin grandes saltos entre un vino y otro.`;
+  else if(desvio<18)perfilConsistencia=`Tuvo algo de variación entre vino y vino, lo cual es normal — no todas las copas generan la misma sensación.`;
+  else perfilConsistencia=`Sus puntajes saltaron bastante de un vino a otro — hubo extremos marcados entre lo que más y lo que menos le gustó. Una noche de altibajos bien sentidos.`;
+
+  const perfilTexto=`A lo largo de la cata, ${nombre} se mostró ${perfilTipo}\n\n${perfilConsistencia}`;
+
+  // ── 💪 FORTALEZAS y 📈 ÁREAS DE MEJORA ───────────────────────────────────
+  const aciertosCepa=misVinos.filter(v=>v.cataLogre).length;
+  const aciertosRegion=misVinos.filter(v=>v.regionElegida===v.regionReal&&v.regionReal!=='—').length;
+  const aciertosMadera=misVinos.filter(v=>v.maderaReal!=='—'&&((v.maderaElegida==='Sí'&&v.maderaReal==='Sí')||(v.maderaElegida==='No'&&v.maderaReal==='No'))).length;
+
+  const fortalezas=[];
+  const mejoras=[];
+  if(aciertosCepa/totalVinos>=0.5)fortalezas.push(`Identificar cepas: acertó ${aciertosCepa} de ${totalVinos} vinos. Tiene buen ojo (o mejor dicho, buen paladar) para reconocer de qué uva se trata.`);
+  else mejoras.push(`Cepas: acertó ${aciertosCepa} de ${totalVinos}. Practicar con catas a ciegas más seguido ayuda a afinar el reconocimiento varietal.`);
+  if(aciertosRegion/totalVinos>=0.5)fortalezas.push(`Ubicar la región de origen: ${aciertosRegion} de ${totalVinos} aciertos. Conoce bien el mapa vitivinícola argentino.`);
+  else mejoras.push(`Reconocer regiones: le costó un poco más (${aciertosRegion} de ${totalVinos}). Un repaso de las características de cada zona productora no vendría mal.`);
+  if(aciertosMadera/totalVinos>=0.5)fortalezas.push(`Detectar el paso por madera: ${aciertosMadera} de ${totalVinos} aciertos. Sabe distinguir cuándo un vino estuvo en roble y cuándo no.`);
+  else if(totalVinos>0)mejoras.push(`Detectar la crianza en madera: solo ${aciertosMadera} de ${totalVinos}. Prestar atención a notas de vainilla, tostado y especias ayuda a identificarla.`);
+  if(fortalezas.length===0)fortalezas.push(`El entusiasmo y las ganas de animarse a opinar sobre cada copa — eso siempre cuenta, y mucho.`);
+  if(mejoras.length===0)mejoras.push(`Honestamente, poco para mejorar esta noche. Solo seguir disfrutando y catando con la misma confianza.`);
+
+  // ── 🎯 CONSEJO FINAL ─────────────────────────────────────────────────────
+  const consejoFinal=esGanador
+    ? `Seguí confiando en tu instinto, pero no te relajes: la próxima cata el resto va a venir con más ganas de sacarte el trono. Un campeón se nota también en cómo defiende el título.`
+    : esUltimo
+    ? `No te lo tomes a pecho — la próxima vez, antes de decidir, tomate un segundo más para oler la copa con calma. A veces la respuesta está ahí, esperando, solo hay que dejarla aparecer.`
+    : `Seguí practicando con la nariz antes que con la boca: la mayoría de la información de un vino está en el aroma, no en el primer trago. Con un poco más de atención a eso, los próximos puntos van a aparecer solos.`;
+
+  // ── Armado final ─────────────────────────────────────────────────────────
+  let texto=`🍇 INTRODUCCIÓN\n${intro}`;
+  texto+=`\n\n🏅 RESULTADO GENERAL\n${resultado}`;
+  texto+=`\n\n🍷 ANÁLISIS VINO POR VINO\n${analisisVinos}`;
+  texto+=`\n\n📊 TU PERFIL COMO CATADOR\n${perfilTexto}`;
+  texto+=`\n\n💪 FORTALEZAS\n${fortalezas.join(' ')}`;
+  texto+=`\n\n📈 ÁREAS DE MEJORA\n${mejoras.join(' ')}`;
+  texto+=`\n\n🎯 CONSEJO FINAL\n${consejoFinal}`;
+
+  if(vinoPropioNombre){
+    const score=parseFloat(vinoPropioScore);
+    let comentario;
+    if(!isNaN(score)&&score>=80)comentario=`y le fue de diez: la mesa lo puntuó con un promedio de ${vinoPropioScore}/100. Buena elección, esa botella generó muy buena impresión.`;
+    else if(!isNaN(score)&&score>=60)comentario=`y tuvo una recepción pareja, con un promedio de ${vinoPropioScore}/100 entre los catadores. Cumplió, sin grandes sorpresas.`;
+    else if(!isNaN(score))comentario=`y la mesa fue bastante dura, con un promedio de ${vinoPropioScore}/100. La próxima, quizás conviene arriesgar con otra etiqueta.`;
+    else comentario=`pero todavía no hay puntajes cargados para saber cómo lo recibió la mesa.`;
+    texto+=`\n\n🍾 EL VINO QUE TRAJO\n${nombre} llevó "${vinoPropioNombre}" ${comentario}`;
+  }
+
+  const cierre=pick([
+    `Así termina el informe de esta noche. Gracias por animarte a catar a ciegas — el vino siempre tiene algo nuevo para enseñar, copa a copa.`,
+    `Eso fue todo por esta cata. Lo importante no es siempre acertar, sino seguir afinando el paladar noche tras noche. ¡Hasta la próxima botella!`,
+    `Acá cierra el resumen de la noche. Cada cata es una excusa más para seguir aprendiendo a disfrutar del vino con un poco más de atención y un poco más de placer.`
+  ]);
+  texto+=`\n\n✨ CIERRE\n${cierre}`;
+
+  return texto;
+}
+
+function exportarInformePDF(){
+  const nombre=window._informeNombre||'Catador';
+  const texto=window._informeTexto||'';
+  const pts=window._informePts||0;
+  const pos=window._informePosicion||'—';
+  const tot=window._informeTotal||'—';
+  const lineasHtml=texto.split('\n').map(l=>{
+    const t=l.trim();
+    if(!t)return '<br/>';
+    if(/^[🍇🏅🍷📊💪📈🎯🍾✨]/.test(t)&&t.length<80) return `<h3 style="color:#7B1E3A;margin-top:22px;margin-bottom:6px;font-size:15px">${t}</h3>`;
+    return `<p style="margin:6px 0;line-height:1.75;font-size:14px">${t}</p>`;
+  }).join('');
+  const win=window.open('','_blank');
+  win.document.write(`<html><head><title>Informe de ${nombre} · Cata a Ciegas</title>
+  <style>
+    body{font-family:Georgia,serif;padding:40px;max-width:700px;margin:0 auto;color:#1a0a0f;}
+    h1{color:#7B1E3A;font-size:24px;border-bottom:2px solid #7B1E3A;padding-bottom:10px;}
+    h2{color:#7B1E3A;font-size:14px;letter-spacing:2px;text-transform:uppercase;margin-top:0;}
+    h3{color:#7B1E3A;font-size:15px;margin-top:20px;margin-bottom:6px;}
+    .meta{font-size:13px;color:#555;margin-bottom:24px;}
+    p{margin:6px 0;line-height:1.75;font-size:14px;}
+    .footer{margin-top:40px;font-size:11px;color:#999;border-top:1px solid #eee;padding-top:12px;text-align:center;}
+  </style></head><body>
+  <h1>🍷 Informe de Cata a Ciegas</h1>
+  <h2>Informe personal de ${nombre}</h2>
+  <div class="meta">${pts} puntos · ${pos}° lugar de ${tot} catadores · Generado con IA</div>
+  <div>${lineasHtml}</div>
+  <div class="footer">Generado por Cata a Ciegas · Suche &amp; JP · ${new Date().toLocaleDateString('es-AR')}</div>
+  </body></html>`);
+  win.document.close();win.print();
+}
+
+async function resetCata(){
+  await Promise.all([db.ref('entries').remove(),db.ref('reveal').remove(),db.ref('config').remove()]);
+  if(progressInterval)clearInterval(progressInterval);
+  if(revealPolling)clearInterval(revealPolling);
+  if(window._waitPoll){clearInterval(window._waitPoll);window._waitPoll=null;}
+  clearSession();
+  state={role:null,nombre:'',config:null,currentWine:0,form:emptyForm(),revealData:[],isAdmin:false,sessionCode:null,perroLocked:false,frozenWines:{}};
+  cachedAllData={};cachedReveal=[];
+  try{document.getElementById('admin-num-p').value='';}catch(e){}
+  try{document.getElementById('admin-vinos-info').style.display='none';}catch(e){}
+  try{document.getElementById('confirm-reset').style.display='none';}catch(e){}
+  try{document.getElementById('admin-password').value='';}catch(e){}
+  goTo('screen-inicio');
+}
+</script>
+</body>
+</html>
